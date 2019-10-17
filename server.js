@@ -18,6 +18,12 @@ const {
   updateBranch,
   deleteBranch,
 } = require('./handlers/branches');
+const {
+  getOrganization,
+  createOrganization,
+  updateOrganization,
+  deleteOrganization,
+} = require('./handlers/organizations');
 const { login, signup, recallUser, logout } = require('./handlers/auth');
 
 const app = express();
@@ -42,9 +48,15 @@ app.get(
   '/api/organizations/:organization_id/branches',
   getOrganizationsBranches
 );
-app.post('/api/branches', createBranch);
+app.post('/api/organizations/:organization_id/branches', createBranch);
 app.put('/api/branches/:branch_id', updateBranch);
 app.delete('/api/branches/:branch_id', deleteBranch);
+
+// organizations
+app.get('/api/organizations/organization_id', getOrganization);
+app.post('/api/organizations', createOrganization);
+app.put('/api/organizations/:organization_id', updateOrganization);
+app.delete('/api/organizations/:organization_id', deleteOrganization);
 
 // ==================
 // === Catch 404s ===
