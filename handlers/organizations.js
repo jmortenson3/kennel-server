@@ -2,11 +2,10 @@ const { nowISO } = require('../utils');
 const { db } = require('../db');
 
 exports.createOrganization = async (req, res, next) => {
-  const organization_id = req.params.organization_id;
   const { organization_name } = req.body;
-  if (!organization_id || !organization_name) {
+  if (!organization_name) {
     return next({
-      error: 'organization_id or organization_name is not defined',
+      error: 'organization_name is not defined',
     });
   }
   try {
