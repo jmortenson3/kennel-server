@@ -33,6 +33,12 @@ const {
   getAppointmentsByOrganization,
   updateAppointment,
 } = require('./handlers/appointments');
+const {
+  createMembership,
+  deleteMembership,
+  getMembership,
+  updateMembership,
+} = require('./handlers/organizationMemberships');
 const { login, signup, recallUser, logout } = require('./handlers/auth');
 
 const app = express();
@@ -64,6 +70,12 @@ app.get(
 );
 app.put('/api/appointments/:appointment_id', updateAppointment);
 app.delete('/apit/appointments/:appointment_id', deleteAppointment);
+
+// memberships
+app.get('/api/organizations/:organization_id/users', getMembership);
+app.post('/api/organizations/:organization_id/users', createMembership);
+app.put('/api/organizations/:organization_id/users', updateMembership);
+app.delete('/api/organizations/:organization_id/users', deleteMembership);
 
 // pets
 app.get('/api/pets/:pet_id', getPet);
