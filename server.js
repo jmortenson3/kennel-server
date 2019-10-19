@@ -2,7 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const cors = require('cors');
 const https = require('https');
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 const { errorHandler } = require('./handlers/error');
 const {
   createPet,
@@ -43,6 +43,7 @@ const { login, signup, recallUser, logout } = require('./handlers/auth');
 
 const app = express();
 app.use(express.json());
+app.use(cors({ credentials: true, origin: ['http://localhost:3000'] }));
 
 //
 // Data Hierarchy
