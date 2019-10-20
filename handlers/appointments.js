@@ -4,7 +4,8 @@ const { db } = require('../db');
 exports.createAppointment = async (req, res, next) => {
   let branch_id = req.params.branch_id;
   const {
-    appointment_type,
+    is_boarding,
+    is_grooming,
     dropoff_datetime,
     pickup_datetime,
     owner_email,
@@ -21,11 +22,12 @@ exports.createAppointment = async (req, res, next) => {
   try {
     let query =
       'INSERT INTO appointments ' +
-      '(appointment_type, dropoff_datetime, pickup_datetime, owner_email, pet_id, created_datetime, updated_datetime, branch_id, notes) ' +
-      'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ' +
+      '(is_boarding, is_grooming, dropoff_datetime, pickup_datetime, owner_email, pet_id, created_datetime, updated_datetime, branch_id, notes) ' +
+      'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ' +
       'RETURNING id;';
     const { rows } = await db.query(query, [
-      appointment_type,
+      is_boarding,
+      is_grooming,
       dropoff_datetime,
       pickup_datetime,
       owner_email,
@@ -51,7 +53,7 @@ exports.getAppointment = async (req, res, next) => {
 
   try {
     let query =
-      'SELECT id, appointment_type, dropoff_datetime, pickup_datetime, owner_email, pet_id, created_datetime, updated_datetime, branch_id, notes ' +
+      'SELECT id, is_boarding, is_grooming, dropoff_datetime, pickup_datetime, owner_email, pet_id, created_datetime, updated_datetime, branch_id, notes ' +
       'FROM appointments ' +
       'WHERE id = $1;';
     const { rows } = await db.query(query, [appointment_id]);
@@ -70,7 +72,8 @@ exports.getAppointmentsByOrganization = async (req, res, next) => {
       'SELECT ' +
       '  appt.id, ' +
       '  org.id organization_id, ' +
-      '  appointment_type, ' +
+      '  is_boarding, ' +
+      '  is_grooming, ' +
       '  dropoff_datetime, ' +
       '  pickup_datetime, ' +
       '  owner_email, ' +
@@ -99,7 +102,8 @@ exports.getAppointmentsByBranch = async (req, res, next) => {
     let query =
       'SELECT ' +
       '  id, ' +
-      '  appointment_type, ' +
+      '  is_boarding, ' +
+      '  is_grooming, ' +
       '  dropoff_datetime, ' +
       '  pickup_datetime, ' +
       '  owner_email, ' +
@@ -127,7 +131,8 @@ exports.updateAppointment = async (req, res, next) => {
 
   try {
     let {
-      appointment_type,
+      is_boarding,
+      is_grooming,
       dropoff_datetime,
       pickup_datetime,
       owner_email,
@@ -138,7 +143,7 @@ exports.updateAppointment = async (req, res, next) => {
     } = req.body;
 
     let selectQuery =
-      'SELECT id, appointment_type, dropoff_datetime, pickup_datetime, owner_email, pet_id, created_datetime, updated_datetime, branch_id, notes, status ' +
+      'SELECT id, is_boarding, is_grooming, dropoff_datetime, pickup_datetime, owner_email, pet_id, created_datetime, updated_datetime, branch_id, notes, status ' +
       'FROM appointments ' +
       'WHERE id = $1;';
     let selectResponse = await db.query(selectQuery, [appointment_id]);
@@ -148,7 +153,8 @@ exports.updateAppointment = async (req, res, next) => {
     }
 
     let thisAppt = selectResponse.rows[0];
-    appointment_type = appointment_type || thisAppt.appointment_type;
+    is_boarding = is_boarding || thisAppt.is_boarding;
+    is_grooming = is_grooming || thisAppt.is_grooming;
     dropoff_datetime = dropoff_datetime || thisAppt.dropoff_datetime;
     pickup_datetime = pickup_datetime || thisAppt.pickup_datetime;
     owner_email = owner_email || thisAppt.owner_email;
@@ -159,12 +165,23 @@ exports.updateAppointment = async (req, res, next) => {
 
     let updateQuery =
       'UPDATE appointments ' +
-      'SET appointment_type = $2, dropoff_datetime = $3, pickup_datetime = $4, owner_email = $5, pet_id = $6, updated_datetime = $7, branch_id = $8, notes = $9, status = $10 ' +
+      'SET ' +
+      '  is_boarding = $2, ' +
+      '  is_grooming = $3, ' +
+      '  dropoff_datetime = $4, ' +
+      '  pickup_datetime = $5, ' +
+      '  owner_email = $6, ' +
+      '  pet_id = $7, ' +
+      '  updated_datetime = $8, ' +
+      '  branch_id = $9, ' +
+      '  notes = $10, ' +
+      '  status = $11 ' +
       'WHERE id = $1;';
     let updatedDatetime = nowISO();
     let { rows } = await db.query(updateQuery, [
       appointment_id,
-      appointment_type,
+      is_boarding,
+      is_grooming,
       dropoff_datetime,
       pickup_datetime,
       owner_email,
@@ -176,7 +193,8 @@ exports.updateAppointment = async (req, res, next) => {
     ]);
     res.status(200).json({
       appointment_id,
-      appointment_type,
+      is_boarding,
+      is_grooming,
       dropoff_datetime,
       pickup_datetime,
       owner_email,
