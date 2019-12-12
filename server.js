@@ -62,7 +62,6 @@ app.get('/api/auth/logout', logout);
 
 // appointments
 app.post('/api/branches/:branch_id/appointments', createAppointment);
-app.get('/api/appointments', getAppointments);
 app.get('/api/appointments/:appointment_id', getAppointment);
 app.get('/api/branches/:branch_id/appointments', getAppointmentsByBranch);
 app.get(
