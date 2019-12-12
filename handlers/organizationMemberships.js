@@ -73,7 +73,10 @@ exports.updateMembership = async (req, res, next) => {
       'SELECT organization_id, user_email, can_accept_appointments, can_deny_appointments, can_edit_kennel_layout ' +
       'FROM organization_memberships ' +
       'WHERE organization_id = $1 AND user_email = $2;';
-    let selectResponse = await db.query(selectQuery, [organization_id, user_email]);
+    let selectResponse = await db.query(selectQuery, [
+      organization_id,
+      user_email,
+    ]);
 
     if (selectResponse.rows.length === 0) {
       return next({ error: 'membership not found' });
@@ -105,7 +108,7 @@ exports.updateMembership = async (req, res, next) => {
       can_accept_appointments,
       can_deny_appointments,
       can_edit_kennel_layout,
-      nowISO()
+      updated_datetime: nowISO(),
     });
   } catch (err) {
     console.log(err.message);
