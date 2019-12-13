@@ -1,4 +1,4 @@
-## Kennel App
+## Kennel App 🐕‍🦺
 
 #### Auth Resources
 
