@@ -56,6 +56,7 @@ router.put('/:id', async (req, res, next) => {
       'SELECT id, org_name, subdomain_name ' +
       'FROM organizations ' +
       'WHERE id = $1;';
+
     let orgQueryResult = await db.query(selectQuery, [id]);
 
     if (orgQueryResult.rows.length === 0) {
@@ -77,7 +78,7 @@ router.put('/:id', async (req, res, next) => {
       nowISO(),
     ]);
     res.status(200).json({
-      org_id: id,
+      id,
       org_name,
       subdomain_name,
       updated_datetime,
