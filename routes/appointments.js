@@ -7,24 +7,24 @@ router.post('/', async (req, res, next) => {
   const {
     is_boarding,
     is_grooming,
-    location_id,
+    loc_id,
     dropoff_datetime,
     pickup_datetime,
-    user_id,
+    user_email,
     pet_id,
     notes,
   } = req.body;
 
-  if (!user_id || !location_id) {
+  if (!user_email || !loc_id) {
     return next({
-      error: 'user_id or location_id is not defined',
+      error: 'user_email or loc_id is not defined',
     });
   }
 
   try {
     let query =
       'INSERT INTO appointments ' +
-      '(is_boarding, is_grooming, dropoff_datetime, pickup_datetime, user_id, pet_id, created_datetime, updated_datetime, location_id, notes) ' +
+      '(is_boarding, is_grooming, dropoff_datetime, pickup_datetime, user_email, pet_id, created_datetime, updated_datetime, loc_id, notes) ' +
       'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ' +
       'RETURNING id;';
     const { rows } = await db.query(query, [
@@ -32,11 +32,11 @@ router.post('/', async (req, res, next) => {
       is_grooming,
       dropoff_datetime,
       pickup_datetime,
-      user_id,
+      user_email,
       pet_id,
       nowISO(),
       nowISO(),
-      location_id,
+      loc_id,
       notes,
     ]);
     res.status(200).json({ data: rows[0] });
@@ -46,19 +46,19 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-router.get('/:appointment_id', async (req, res, next) => {
-  const appointment_id = req.params.appointment_id;
+router.get('/:id', async (req, res, next) => {
+  const id = req.params.id;
 
-  if (!appointment_id) {
+  if (!id) {
     return next({ error: 'appointment_id is not defined' });
   }
 
   try {
     let query =
-      'SELECT id, is_boarding, is_grooming, dropoff_datetime, pickup_datetime, user_id, pet_id, created_datetime, updated_datetime, location_id, notes ' +
+      'SELECT id, is_boarding, is_grooming, dropoff_datetime, pickup_datetime, user_id, pet_id, created_datetime, updated_datetime, loc_id, notes ' +
       'FROM appointments ' +
       'WHERE id = $1;';
-    const { rows } = await db.query(query, [appointment_id]);
+    const { rows } = await db.query(query, [id]);
     res.status(200).json({ data: rows });
   } catch (err) {
     console.log(err);
@@ -94,7 +94,7 @@ let getAppts = async () => {
     '  pet_id, ' +
     '  created_datetime, ' +
     '  updated_datetime, ' +
-    '  location_id, ' +
+    '  loc_id, ' +
     '  notes ' +
     'FROM appointments;';
   const { rows } = await db.query(query);
@@ -114,11 +114,11 @@ let getApptsByOrg = async org_id => {
     '  pet_id, ' +
     '  appt.created_datetime, ' +
     '  appt.updated_datetime, ' +
-    '  appt.location_id, ' +
+    '  appt.loc_id, ' +
     '  notes ' +
     'FROM appointments appt, organizations org, locations loc ' +
     'WHERE ' +
-    '  appt.location_id = loc.id ' +
+    '  appt.loc_ id = loc.id ' +
     '  and bra.org_id = org.id ' +
     '  and org.id = $1;';
   const { rows } = await db.query(query, [org_id]);
@@ -140,16 +140,16 @@ let getApptsByLoc = async loc_id => {
     '  location_id, ' +
     '  notes ' +
     'FROM appointments ' +
-    'WHERE location_id = $1;';
+    'WHERE loc_id = $1;';
   const { rows } = await db.query(query, [loc_id]);
   return rows;
 };
 
-router.put('/:appointment_id', async (req, res, next) => {
-  const appointment_id = req.params.appointment_id;
+router.put('/:id', async (req, res, next) => {
+  const id = req.params.id;
 
-  if (!appointment_id) {
-    return next({ error: 'appointment_id is not defined' });
+  if (!id) {
+    return next({ error: 'appointment id is not defined' });
   }
 
   try {
@@ -160,16 +160,16 @@ router.put('/:appointment_id', async (req, res, next) => {
       pickup_datetime,
       user_email,
       pet_id,
-      location_id,
+      location_id: loc_id,
       notes,
       status,
     } = req.body;
 
     let selectQuery =
-      'SELECT id, is_boarding, is_grooming, dropoff_datetime, pickup_datetime, user_email, pet_id, created_datetime, updated_datetime, location_id, notes, status ' +
+      'SELECT id, is_boarding, is_grooming, dropoff_datetime, pickup_datetime, user_email, pet_id, created_datetime, updated_datetime, loc_id, notes, status ' +
       'FROM appointments ' +
       'WHERE id = $1;';
-    let selectResponse = await db.query(selectQuery, [appointment_id]);
+    let selectResponse = await db.query(selectQuery, [id]);
 
     if (selectResponse.rows.length === 0) {
       return next({ error: 'appointment not found' });
@@ -182,7 +182,7 @@ router.put('/:appointment_id', async (req, res, next) => {
     pickup_datetime = pickup_datetime || thisAppt.pickup_datetime;
     user_email = user_email || thisAppt.user_email;
     pet_id = pet_id || thisAppt.pet_id;
-    location_id = location_id || thisAppt.location_id;
+    loc_id = loc_id || thisAppt.loc_id;
     notes = notes || thisAppt.notes;
     status = status || thisAppt.status;
 
@@ -196,13 +196,13 @@ router.put('/:appointment_id', async (req, res, next) => {
       '  user_email = $6, ' +
       '  pet_id = $7, ' +
       '  updated_datetime = $8, ' +
-      '  location_id = $9, ' +
+      '  loc_id = $9, ' +
       '  notes = $10, ' +
       '  status = $11 ' +
       'WHERE id = $1;';
     let updatedDatetime = nowISO();
     let { rows } = await db.query(updateQuery, [
-      appointment_id,
+      id,
       is_boarding,
       is_grooming,
       dropoff_datetime,
@@ -210,12 +210,12 @@ router.put('/:appointment_id', async (req, res, next) => {
       user_email,
       pet_id,
       updatedDatetime,
-      location_id,
+      loc_id,
       notes,
       status,
     ]);
     res.status(200).json({
-      appointment_id,
+      id,
       is_boarding,
       is_grooming,
       dropoff_datetime,
@@ -223,7 +223,7 @@ router.put('/:appointment_id', async (req, res, next) => {
       user_email,
       pet_id,
       updatedDatetime,
-      location_id,
+      loc_id,
       notes,
       status,
     });
@@ -233,16 +233,16 @@ router.put('/:appointment_id', async (req, res, next) => {
   }
 });
 
-router.delete('/:appointment_id', async (req, res, next) => {
-  const appointment_id = req.params.appointment_id;
+router.delete('/:id', async (req, res, next) => {
+  const id = req.params.id;
 
-  if (!appointment_id) {
-    return next({ error: 'appointment_id is not defined' });
+  if (!id) {
+    return next({ error: 'appointment id is not defined' });
   }
 
   try {
     let query = 'DELETE FROM appointments WHERE id = $1;';
-    await db.query(query, [appointment_id]);
+    await db.query(query, [id]);
     res.status(200).json({});
   } catch (err) {
     next(err);
