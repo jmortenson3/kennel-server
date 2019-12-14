@@ -1,10 +1,11 @@
+const express = require('express');
+const app = express();
 const fs = require('fs');
 const cors = require('cors');
 const https = require('https');
 const port = process.env.PORT || 3001;
 const { errorHandler } = require('./handlers/error');
 const routes = require('./routes');
-const app = express();
 app.use(express.json());
 app.use(cors({ credentials: true, origin: ['http://localhost:3000'] }));
 
