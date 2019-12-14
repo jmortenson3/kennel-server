@@ -38,7 +38,7 @@ router.get('/:id', async (req, res, next) => {
 
   try {
     let query =
-      'SELECT id, pet_name, birth_date, created_datetime, updated_datetime, pet_type, breed ' +
+      'SELECT id, pet_name, user_email, birth_date, created_datetime, updated_datetime, pet_type, breed ' +
       'FROM pets ' +
       'WHERE id = $1;';
     const { rows } = await db.query(query, [id]);
@@ -66,7 +66,7 @@ router.get('/', async (req, res, next) => {
 
 let getPets = async () => {
   let query =
-    'SELECT id, pet_name, birth_date, created_datetime, updated_datetime, pet_type, breed ' +
+    'SELECT id, pet_name, user_email, birth_date, created_datetime, updated_datetime, pet_type, breed ' +
     'FROM pets;';
   const { rows } = await db.query(query);
   return rows;
@@ -74,7 +74,7 @@ let getPets = async () => {
 
 let getPetsByUser = async user_email => {
   let query =
-    'SELECT id, pet_name, birth_date, created_datetime, updated_datetime, pet_type, breed ' +
+    'SELECT id, pet_name, user_email, birth_date, created_datetime, updated_datetime, pet_type, breed ' +
     'FROM pets ' +
     'WHERE user_email = $1;';
   const { rows } = await db.query(query, [user_email]);
@@ -92,7 +92,7 @@ router.put('/:id', async (req, res, next) => {
     let { user_email, pet_name, birth_date, pet_type, breed } = req.body;
 
     let selectQuery =
-      'SELECT id, pet_name, birth_date, created_datetime, updated_datetime, pet_type, breed ' +
+      'SELECT id, pet_name, user_email, birth_date, created_datetime, updated_datetime, pet_type, breed ' +
       'FROM pets ' +
       'WHERE id = $1;';
     let selectResponse = await db.query(selectQuery, [id]);
@@ -122,7 +122,7 @@ router.put('/:id', async (req, res, next) => {
     ]);
     res
       .status(200)
-      .json({ pet_id: id, user_email, pet_name, birth_date, pet_type, breed });
+      .json({ id, user_email, pet_name, birth_date, pet_type, breed });
   } catch (err) {
     console.log(err.message);
     next(err);
