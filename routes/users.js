@@ -107,7 +107,7 @@ let getMembershipsByOrg = async (userEmail, orgId) => {
   return rows;
 };
 
-router.put('/:id/memberships', async (res, res, next) => {
+router.put('/:id/memberships', async (req, res, next) => {
   const id = req.params.id;
   let {
     org_id,
