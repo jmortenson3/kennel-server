@@ -66,6 +66,47 @@ router.post('/:id/memberships', async (req, res, next) => {
   }
 });
 
+router.get('/:id/memberships', async (req, res, next) => {
+  const id = req.params.id;
+  if (!id) {
+    return next({ error: 'user id not defined' });
+  }
+
+  try {
+    const userEmail = id.trim().toLowerCase();
+    let rows;
+
+    if (req.query.org_id) {
+      rows = await getMembershipsByOrg(userEmail, req.query.org_id);
+    } else {
+      rows = await getMemberships(userEmail);
+    }
+
+    res.status(200).json({ data: rows });
+  } catch (err) {
+    console.log(err.message);
+    next(err);
+  }
+});
+
+let getMemberships = async userEmail => {
+  let query =
+    'SELECT org_id, user_email, can_accept_appointments, can_deny_appointments, can_edit_kennel_layout ' +
+    'FROM organization_memberships ' +
+    'WHERE user_email = $1;';
+  const { rows } = await db.query(query, [userEmail]);
+  return rows;
+};
+
+let getMembershipsByOrg = async (userEmail, orgId) => {
+  let query =
+    'SELECT org_id, user_email, can_accept_appointments, can_deny_appointments, can_edit_kennel_layout ' +
+    'FROM organization_memberships ' +
+    'WHERE user_email = $1 and org_id = $2;';
+  const { rows } = await db.query(query, [userEmail, orgId]);
+  return rows;
+};
+
 router.put('/:id/memberships', async (res, res, next) => {
   const id = req.params.id;
   let {
