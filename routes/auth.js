@@ -39,14 +39,13 @@ router.post('/login', async (req, res, next) => {
       expiresIn: tokenExpirationSeconds,
     });
 
-    // max age in milliseconds
-    console.log('Setting cookies');
     res.cookie('token', token, {
       maxAge: tokenExpirationSeconds * 1000,
+      secure: true,
       httpOnly: true,
     });
 
-    res.status(200).json({ message: `${emailLower} logged in.`, user });
+    res.status(204).send();
   } catch (err) {
     console.log(err);
     next({ error: 'login: could not find user in db' });
@@ -65,9 +64,7 @@ router.post('/signup', async (req, res, next) => {
 
   let emailLower = email.toLowerCase();
 
-  //
   // Check email availability
-  //
   try {
     const query = 'SELECT email FROM users WHERE email = $1';
     const { rows } = await db.query(query, [emailLower]);
@@ -79,7 +76,6 @@ router.post('/signup', async (req, res, next) => {
     return next({ error: 'signup: email taken' });
   }
 
-  // Hash up
   let hashedPassword = '';
 
   try {
@@ -88,12 +84,10 @@ router.post('/signup', async (req, res, next) => {
     return next({ error: 'signup: problem protecting password' });
   }
 
-  //
-  // Go ahead and create the user
-  //
   try {
     let query =
-      'INSERT INTO users (email, hashed_password, created_datetime, updated_datetime) VALUES ($1, $2, $3, $4) RETURNING email;';
+      'INSERT INTO users (email, hashed_password, created_datetime, updated_datetime) ' +
+      'VALUES ($1, $2, $3, $4) RETURNING email;';
 
     const rows = await db.query(query, [
       emailLower,
@@ -106,19 +100,17 @@ router.post('/signup', async (req, res, next) => {
       emailLower,
     };
 
-    // Give them a token!
     const token = jwt.sign(user, tokenKey, {
       algorithm: hashFunction,
       expiresIn: tokenExpirationSeconds,
     });
 
-    console.log('Setting cookies');
-    // max age in milliseconds
     res.cookie('token', token, {
       maxAge: tokenExpirationSeconds * 1000,
       httpOnly: true,
     });
-    res.status(200).json({ message: `${emailLower} logged in.`, user });
+
+    res.status(204).send();
   } catch (err) {
     console.log(err);
     next({ error: 'signup: problem happened' });
@@ -143,7 +135,7 @@ router.post('/recall', async (req, res, next) => {
       const user = {
         email: decodedPayload.email,
       };
-      res.status(200).json({ message: 'user remembered', user });
+      res.status(200).json({ data: user });
     } else {
       console.log('Something went wrong decoding the payload...');
       console.log(decodedPayload);
@@ -153,10 +145,8 @@ router.post('/recall', async (req, res, next) => {
 });
 
 router.get('/logout', (req, res, next) => {
-  console.log('COOKIE:');
-  console.log(req.cookies);
   res.clearCookie('token');
-  res.status(200).send();
+  res.status(204).send();
 });
 
 module.exports = router;
