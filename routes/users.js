@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { nowISO } = require('../utils');
+const { getUserFromToken, nowISO } = require('../utils');
 const { db } = require('../db');
 
 router.get('/', async (req, res, next) => {
@@ -7,6 +7,34 @@ router.get('/', async (req, res, next) => {
     let query =
       'SELECT email, created_datetime, updated_datetime ' + 'FROM users;';
     const { rows } = await db.query(query);
+    res.status(200).json({ data: rows });
+  } catch (err) {
+    console.log(err.message);
+    next(err);
+  }
+});
+
+router.get('/me', async (req, res, next) => {
+  if (!req.cookies || !req.cookies.token) {
+    return next({ error: 'login is required', status: 401 });
+  }
+
+  try {
+    const user = getUserFromToken(req.cookies.token);
+    const userEmail = user.email ? user.email.toLowerCase() : null;
+
+    if (!userEmail) {
+      return next({
+        error: 'user email not found in cookies',
+      });
+    }
+
+    let query =
+      'SELECT email, created_datetime, updated_datetime ' +
+      'FROM users ' +
+      'WHERE email = $1;';
+    const { rows } = await db.query(query, [userEmail]);
+
     res.status(200).json({ data: rows[0] });
   } catch (err) {
     console.log(err.message);
