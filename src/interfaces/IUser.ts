@@ -6,4 +6,6 @@ export interface IUser {
 
 export interface IUserSafe {
   email: string;
+  created_datetime?: string;
+  updated_datetime?: string;
 }
