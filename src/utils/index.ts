@@ -1,19 +1,22 @@
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const { db } = require('../db');
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+
+import db from '../db';
 
 /**
  * Time in milliseconds -
  */
-exports.nowMilliseconds = () => {
+export const nowMilliseconds = (): number => {
   return new Date().getTime();
 };
 
-exports.nowISO = () => {
+export const nowISO = (): string => {
   return new Date().toISOString();
 };
 
-exports.hashPassword = async plaintextPassword => {
+export const hashPassword = async (
+  plaintextPassword: string
+): Promise<unknown> => {
   const SALT_ROUNDS = 10;
   const hashedPassword = await new Promise((resolve, reject) => {
     bcrypt.hash(plaintextPassword, SALT_ROUNDS, (err, hash) => {
@@ -27,7 +30,10 @@ exports.hashPassword = async plaintextPassword => {
   return hashedPassword;
 };
 
-exports.comparePasswords = async (plaintextPassword, hashedPassword) => {
+export const comparePasswords = async (
+  plaintextPassword: string,
+  hashedPassword: string
+) => {
   try {
     const match = await bcrypt.compare(plaintextPassword, hashedPassword);
     return match;
@@ -37,11 +43,12 @@ exports.comparePasswords = async (plaintextPassword, hashedPassword) => {
   }
 };
 
-const urlIdCharacters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXZY0123456789_-'.split(
-  ''
-);
+const urlIdCharacters =
+  'abcdefghijklmnopqrstuvwxyz' +
+  'ABCDEFGHIJKLMNOPQRSTUVWXZY' +
+  '0123456789_-'.split('');
 
-exports.genShortenedUrlId = () => {
+export const genShortenedUrlId = () => {
   const charLimit = 6;
   let urlId = '';
   for (let i = 0; i < charLimit; i++) {
@@ -52,18 +59,18 @@ exports.genShortenedUrlId = () => {
   return urlId;
 };
 
-exports.getUserFromToken = token => {
-  const user = jwt.decode(token);
+export const getUserFromToken = (token: string): any => {
+  const user = <any>jwt.decode(token);
   return user;
 };
 
-exports.getTokenFromCookie = cookie => {
+export const getTokenFromCookie = (cookie: string) => {
   let cookies = cookie.split('=');
   let token = cookies[cookies.indexOf('token') + 1];
   return token;
 };
 
-exports.setLastLoginDate = async email => {
+export const setLastLoginDate = async function(email: string) {
   try {
     let query = 'UPDATE users SET last_login_date = $1 where email = $2;';
     await db.query(query, [this.nowISO(), email]);
@@ -73,6 +80,6 @@ exports.setLastLoginDate = async email => {
   }
 };
 
-exports.logem = msg => {
+export const logem = function(msg: string) {
   console.log(this.nowISO() + '  ' + msg);
 };

@@ -3,3 +3,6 @@ config.js
 config/config.js
 *.key
 *.cert
+
+# Built ts files
+dist/**/*

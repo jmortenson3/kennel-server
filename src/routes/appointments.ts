@@ -1,9 +1,11 @@
-const router = require('express').Router();
-const { nowISO } = require('../utils');
-const { db } = require('../db');
+import express, { Request, Response, NextFunction } from 'express';
+import { nowISO } from '../utils';
+import db from '../db';
+
+const router = express.Router();
 
 // create appointment
-router.post('/', async (req, res, next) => {
+router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   const {
     is_boarding,
     is_grooming,
@@ -46,7 +48,7 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-router.get('/:id', async (req, res, next) => {
+router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   const id = req.params.id;
 
   if (!id) {
@@ -66,7 +68,7 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-router.get('/', async (req, res, next) => {
+router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   let rows;
   try {
     if (req.query.loc_id) {
@@ -101,7 +103,7 @@ let getAppts = async () => {
   return rows;
 };
 
-let getApptsByOrg = async org_id => {
+let getApptsByOrg = async (org_id: string) => {
   let query =
     'SELECT ' +
     '  appt.id, ' +
@@ -125,7 +127,7 @@ let getApptsByOrg = async org_id => {
   return rows;
 };
 
-let getApptsByLoc = async loc_id => {
+let getApptsByLoc = async (loc_id: string) => {
   let query =
     'SELECT ' +
     '  id, ' +
@@ -145,7 +147,7 @@ let getApptsByLoc = async loc_id => {
   return rows;
 };
 
-router.put('/:id', async (req, res, next) => {
+router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
   const id = req.params.id;
 
   if (!id) {
@@ -233,20 +235,23 @@ router.put('/:id', async (req, res, next) => {
   }
 });
 
-router.delete('/:id', async (req, res, next) => {
-  const id = req.params.id;
+router.delete(
+  '/:id',
+  async (req: Request, res: Response, next: NextFunction) => {
+    const id = req.params.id;
 
-  if (!id) {
-    return next({ error: 'appointment id is not defined' });
-  }
+    if (!id) {
+      return next({ error: 'appointment id is not defined' });
+    }
 
-  try {
-    let query = 'DELETE FROM appointments WHERE id = $1;';
-    await db.query(query, [id]);
-    res.status(200).json({});
-  } catch (err) {
-    next(err);
+    try {
+      let query = 'DELETE FROM appointments WHERE id = $1;';
+      await db.query(query, [id]);
+      res.status(200).json({});
+    } catch (err) {
+      next(err);
+    }
   }
-});
+);
 
 module.exports = router;

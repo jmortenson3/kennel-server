@@ -1,5 +1,7 @@
-const express = require('express');
-const { authenticatedRoute } = require('../middleware/auth');
+import express from 'express';
+
+import { authenticatedRoute } from '../middleware/auth';
+
 const router = express.Router();
 
 router.use('/api/auth', require('./auth'));
@@ -9,4 +11,4 @@ router.use('/api/org', authenticatedRoute, require('./organizations'));
 router.use('/api/pets', authenticatedRoute, require('./pets'));
 router.use('/api/users', authenticatedRoute, require('./users'));
 
-module.exports = router;
+export default router;

@@ -1,8 +1,11 @@
-const router = require('express').Router();
-const { nowISO } = require('../utils');
-const { db } = require('../db');
+import express, { Request, Response, NextFunction } from 'express';
 
-router.post('/', async (req, res, next) => {
+import { nowISO } from '../utils';
+import db from '../db';
+
+const router = express.Router();
+
+router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   const { organization_name: org_name } = req.body;
   if (!org_name) {
     return next({
@@ -23,7 +26,7 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-router.get('/:id', async (req, res, next) => {
+router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   const id = req.params.id;
 
   if (!id) {
@@ -43,7 +46,7 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-router.put('/:id', async (req, res, next) => {
+router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
   const id = req.params.org_id;
 
   if (!id) {
@@ -67,6 +70,7 @@ router.put('/:id', async (req, res, next) => {
     let thisOrg = orgQueryResult.rows[0];
     org_name = org_name || thisOrg.org_name;
     subdomain_name = subdomain_name || thisOrg.subdomain_name;
+    let updated_datetime = nowISO();
 
     let updateQuery =
       'UPDATE organizations ' +
@@ -76,7 +80,7 @@ router.put('/:id', async (req, res, next) => {
       id,
       org_name,
       subdomain_name,
-      nowISO(),
+      updated_datetime,
     ]);
     res.status(200).json({
       id,
@@ -90,20 +94,23 @@ router.put('/:id', async (req, res, next) => {
   }
 });
 
-router.delete('/:id', async (req, res, next) => {
-  const id = req.params.id;
+router.delete(
+  '/:id',
+  async (req: Request, res: Response, next: NextFunction) => {
+    const id = req.params.id;
 
-  if (!id) {
-    return next({ error: 'org id is not defined' });
-  }
+    if (!id) {
+      return next({ error: 'org id is not defined' });
+    }
 
-  try {
-    let query = 'DELETE FROM organizations WHERE id = $1;';
-    await db.query(query, [id]);
-    res.status(200).json({});
-  } catch (err) {
-    next(err);
+    try {
+      let query = 'DELETE FROM organizations WHERE id = $1;';
+      await db.query(query, [id]);
+      res.status(200).json({});
+    } catch (err) {
+      next(err);
+    }
   }
-});
+);
 
 module.exports = router;

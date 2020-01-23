@@ -1,14 +1,22 @@
-const jwt = require('jsonwebtoken');
-const { logem, getUserFromToken, getTokenFromCookie } = require('../utils');
-const { tokenKey } = require('../config');
+import jwt, { VerifyErrors } from 'jsonwebtoken';
+import { Request, Response, NextFunction } from 'express';
+import { logem, getUserFromToken, getTokenFromCookie } from '../utils';
+import config from '../../config';
 
-exports.authenticatedRoute = (req, res, next) => {
+export const authenticatedRoute = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   if (!req.cookies || !req.cookies.token) {
     logem('Cookies not set');
     return next({ error: 'login is required', status: 401 });
   }
 
-  jwt.verify(req.cookies.token, tokenKey, function(err, decodedPayload) {
+  jwt.verify(req.cookies.token, config.tokenKey, function(
+    err: VerifyErrors,
+    decodedPayload: string | object
+  ) {
     if (err) {
       console.log(err);
     }
@@ -17,13 +25,17 @@ exports.authenticatedRoute = (req, res, next) => {
       next();
     } else {
       logem('Something went wrong decoding the payload...');
-      logem(decodedPayload);
+      logem(<string>decodedPayload);
       next({ error: 'bad token', status: 403 });
     }
   });
 };
 
-exports.authorizedRoute = (req, res, next) => {
+export const authorizedRoute = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   if (!req.cookies || !req.cookies.token) {
     logem('Cookies not set');
     return next({ error: 'login is required', status: 401 });

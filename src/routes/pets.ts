@@ -1,8 +1,10 @@
-const router = require('express').Router();
-const { nowISO } = require('../utils');
-const { db } = require('../db');
+import express, { Request, Response, NextFunction } from 'express';
+import { nowISO } from '../utils';
+import db from '../db';
 
-router.post('/', async (req, res, next) => {
+const router = express.Router();
+
+router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   const { user_email, pet_name, birth_date, pet_type, breed } = req.body;
   if (!pet_name || !user_email) {
     return next({ error: 'user_email or pet_name is not defined' });
@@ -29,7 +31,7 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-router.get('/:id', async (req, res, next) => {
+router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   const id = req.params.id;
 
   if (!id) {
@@ -49,7 +51,7 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-router.get('/', async (req, res, next) => {
+router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     let rows;
     if (req.query.user_email) {
@@ -72,7 +74,7 @@ let getPets = async () => {
   return rows;
 };
 
-let getPetsByUser = async user_email => {
+let getPetsByUser = async (user_email: string) => {
   let query =
     'SELECT id, pet_name, user_email, birth_date, created_datetime, updated_datetime, pet_type, breed ' +
     'FROM pets ' +
@@ -81,7 +83,7 @@ let getPetsByUser = async user_email => {
   return rows;
 };
 
-router.put('/:id', async (req, res, next) => {
+router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
   const id = req.params.id;
 
   if (!id) {
@@ -129,20 +131,23 @@ router.put('/:id', async (req, res, next) => {
   }
 });
 
-router.delete('/:id', async (req, res, next) => {
-  const id = req.params.id;
+router.delete(
+  '/:id',
+  async (req: Request, res: Response, next: NextFunction) => {
+    const id = req.params.id;
 
-  if (!id) {
-    return next({ error: 'pet id is not defined' });
-  }
+    if (!id) {
+      return next({ error: 'pet id is not defined' });
+    }
 
-  try {
-    let query = 'DELETE FROM pets WHERE id = $1;';
-    await db.query(query, [id]);
-    res.status(200).json({});
-  } catch (err) {
-    next(err);
+    try {
+      let query = 'DELETE FROM pets WHERE id = $1;';
+      await db.query(query, [id]);
+      res.status(200).json({});
+    } catch (err) {
+      next(err);
+    }
   }
-});
+);
 
 module.exports = router;
