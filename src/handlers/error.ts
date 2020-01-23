@@ -1,14 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
+import { IError } from '../interfaces/IError';
 
 const errorHandler = (
-  err: any,
+  err: IError,
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  console.log('Handling an error: ' + err.error);
-  return res.status(err.status || 500).json({
-    error: err.error || 'Oops, something went wrong :( ',
+  console.log('Handling an error: ' + err.message);
+  console.log(err);
+  return res.status(err.statusCode || 500).json({
+    error: err.message || 'Oops, something went wrong :( ',
   });
 };
 
