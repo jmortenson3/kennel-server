@@ -1,6 +1,6 @@
 import jwt, { VerifyErrors } from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
-import { logem, getUserFromToken, getTokenFromCookie } from '../utils';
+import { logem, getUserFromToken } from '../utils';
 import config from '../../config';
 
 export const authenticatedRoute = (
@@ -9,8 +9,7 @@ export const authenticatedRoute = (
   next: NextFunction
 ) => {
   if (!req.cookies || !req.cookies.token) {
-    logem('Cookies not set');
-    return next({ error: 'login is required', status: 401 });
+    return next({ message: 'login is required', status: 401 });
   }
 
   jwt.verify(req.cookies.token, config.tokenKey, function(
@@ -26,7 +25,7 @@ export const authenticatedRoute = (
     } else {
       logem('Something went wrong decoding the payload...');
       logem(<string>decodedPayload);
-      next({ error: 'bad token', status: 403 });
+      next({ message: 'bad token', status: 403 });
     }
   });
 };
@@ -38,7 +37,7 @@ export const authorizedRoute = (
 ) => {
   if (!req.cookies || !req.cookies.token) {
     logem('Cookies not set');
-    return next({ error: 'login is required', status: 401 });
+    return next({ message: 'login is required', status: 401 });
   }
 
   try {
@@ -53,6 +52,6 @@ export const authorizedRoute = (
       next();
     }
   } catch (err) {
-    next({ error: 'error getting user from cookie', status: 400 });
+    next({ message: 'error getting user from cookie', status: 400 });
   }
 };
