@@ -1,7 +1,9 @@
 import express, { Request, Response, NextFunction } from 'express';
 
+import { UserService } from '../services/user';
 import { getUserFromToken, nowISO } from '../utils';
 import db from '../db';
+import { IMembership } from '../interfaces/IMembership';
 
 const router = express.Router();
 
@@ -12,36 +14,29 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     const { rows } = await db.query(query);
     res.status(200).json({ data: rows });
   } catch (err) {
-    console.log(err.message);
-    next(err);
+    next({ message: err, statusCode: 400 });
   }
 });
 
 router.get('/me', async (req: Request, res: Response, next: NextFunction) => {
-  if (!req.cookies || !req.cookies.token) {
-    return next({ error: 'login is required', status: 401 });
-  }
-
   try {
-    const user = getUserFromToken(req.cookies.token);
-    const userEmail = user.email ? user.email.toLowerCase() : null;
-
-    if (!userEmail) {
-      return next({
-        error: 'user email not found in cookies',
-      });
+    if (!req.cookies || !req.cookies.token) {
+      throw new Error('login is required');
     }
 
-    let query =
-      'SELECT email, created_datetime, updated_datetime ' +
-      'FROM users ' +
-      'WHERE email = $1;';
-    const { rows } = await db.query(query, [userEmail]);
+    const userToken = getUserFromToken(req.cookies.token);
+    const userEmail = userToken.email ? userToken.email.toLowerCase() : null;
 
-    res.status(200).json({ data: rows[0] });
+    if (!userEmail) {
+      throw new Error('user email not found in cookies');
+    }
+
+    const userService = new UserService();
+    const user = await userService.GetUserDetails(userEmail);
+    res.status(200).json({ data: user });
   } catch (err) {
-    console.log(err.message);
-    next(err);
+    console.log(err);
+    next({ message: err, statusCode: 400 });
   }
 });
 
@@ -53,49 +48,39 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
         error: 'user email is not supplied',
       });
     }
-
-    const cleansedId = id.trim().toLowerCase();
-
-    let query =
-      'SELECT email, created_datetime, updated_datetime ' +
-      'FROM users ' +
-      'WHERE email = $1;';
-    const { rows } = await db.query(query, [cleansedId]);
-    res.status(200).json({ data: rows[0] });
+    const userEmail = id.trim().toLowerCase();
+    const userService = new UserService();
+    const user = await userService.GetUserDetails(userEmail);
+    res.status(200).json({ data: user });
   } catch (err) {
-    next(err);
+    next({ message: 'could not find user', status: 488 });
   }
 });
 
 router.post(
   '/:id/memberships',
   async (req: Request, res: Response, next: NextFunction) => {
-    const { org_id } = req.body;
-    const id = req.params.id;
-
-    if (!org_id || !id) {
-      return next({
-        error: 'org_id or user id is not defined',
-      });
-    }
-
-    const userEmail = id.trim().toLowerCase();
     try {
-      let query =
-        'INSERT INTO organization_memberships ' +
-        '(org_id, user_email, created_datetime, updated_datetime) ' +
-        'VALUES ($1, $2, $3, $4) ' +
-        'RETURNING org_id, user_email, created_datetime, updated_datetime;';
-      const { rows } = await db.query(query, [
-        org_id,
+      const { org_id } = req.body;
+      const id = req.params.id;
+
+      if (!org_id || !id) {
+        throw new Error('org_id or user id is not defined');
+      }
+
+      const userEmail = id.trim().toLowerCase();
+      const now = nowISO();
+      const membership: IMembership = {
         userEmail,
-        nowISO(),
-        nowISO(),
-      ]);
-      res.status(200).json({ data: rows[0] });
+        org_id,
+        created_datetime: now,
+        updated_datetime: now,
+      };
+      const userService = new UserService();
+      await userService.CreateMembership(membership);
+      res.status(200).json({ data: membership });
     } catch (err) {
-      console.log(err.message);
-      next(err);
+      next({ message: err, statusCode: 400 });
     }
   }
 );
@@ -103,108 +88,63 @@ router.post(
 router.get(
   '/:id/memberships',
   async (req: Request, res: Response, next: NextFunction) => {
-    const id = req.params.id;
-    if (!id) {
-      return next({ error: 'user id not defined' });
-    }
-
     try {
+      const id = req.params.id;
+      if (!id) {
+        throw new Error('user id not defined');
+      }
+
       const userEmail = id.trim().toLowerCase();
-      let rows;
+      const userService = new UserService();
+      let rows: any[];
 
       if (req.query.org_id) {
-        rows = await getMembershipsByOrg(userEmail, req.query.org_id);
+        rows = await userService.GetMembershipsByOrg(
+          userEmail,
+          req.query.org_id
+        );
       } else {
-        rows = await getMemberships(userEmail);
+        rows = await userService.GetMemberships(userEmail);
       }
 
       res.status(200).json({ data: rows });
     } catch (err) {
       console.log(err.message);
-      next(err);
+      next({ message: err, statusCode: 400 });
     }
   }
 );
 
-let getMemberships = async (userEmail: string) => {
-  let query =
-    'SELECT org_id, user_email, can_accept_appointments, can_deny_appointments, can_edit_kennel_layout ' +
-    'FROM organization_memberships ' +
-    'WHERE user_email = $1;';
-  const { rows } = await db.query(query, [userEmail]);
-  return rows;
-};
-
-let getMembershipsByOrg = async (userEmail: string, orgId: string) => {
-  let query =
-    'SELECT org_id, user_email, can_accept_appointments, can_deny_appointments, can_edit_kennel_layout ' +
-    'FROM organization_memberships ' +
-    'WHERE user_email = $1 and org_id = $2;';
-  const { rows } = await db.query(query, [userEmail, orgId]);
-  return rows;
-};
-
 router.put(
   '/:id/memberships',
   async (req: Request, res: Response, next: NextFunction) => {
-    const id = req.params.id;
-    let {
-      org_id,
-      can_accept_appointments,
-      can_deny_appointments,
-      can_edit_kennel_layout,
-    } = req.body;
-
-    if (!org_id || !id) {
-      return next({
-        error: 'org_id or user id is not defined',
-      });
-    }
-
-    const userEmail = id.trim().toLowerCase();
-
     try {
-      let selectQuery =
-        'SELECT org_id, user_email, can_accept_appointments, can_deny_appointments, can_edit_kennel_layout ' +
-        'FROM organization_memberships ' +
-        'WHERE org_id = $1 AND user_email = $2;';
-      let selectResponse = await db.query(selectQuery, [org_id, userEmail]);
-
-      if (selectResponse.rows.length === 0) {
-        return next({ error: 'membership not found' });
-      }
-
-      let thisMembership = selectResponse.rows[0];
-      can_accept_appointments =
-        can_accept_appointments || thisMembership.can_accept_appointments;
-      can_deny_appointments =
-        can_deny_appointments || thisMembership.can_deny_appointments;
-      can_edit_kennel_layout =
-        can_edit_kennel_layout || thisMembership.can_edit_kennel_layout;
-
-      let updateQuery =
-        'UPDATE organization_memberships ' +
-        'SET can_accept_appointments = $3, can_deny_appointments = $4, can_edit_kennel_layout = $5, updated_datetime = $6' +
-        'WHERE org_id = $1 AND user_email = $2;';
-      let { rows } = await db.query(updateQuery, [
+      const id = req.params.id;
+      let {
         org_id,
-        userEmail,
         can_accept_appointments,
         can_deny_appointments,
         can_edit_kennel_layout,
-        nowISO(),
-      ]);
-      res.status(200).json({
+      } = req.body;
+
+      if (!org_id || !id) {
+        throw new Error('org_id or user id is not defined');
+      }
+
+      const userEmail = id.trim().toLowerCase();
+      const membership: IMembership = {
         org_id,
         userEmail,
         can_accept_appointments,
         can_deny_appointments,
         can_edit_kennel_layout,
         updated_datetime: nowISO(),
-      });
+      };
+      const userService = new UserService();
+      const updatedMembership = await userService.UpdateMembership(membership);
+      res.status(200).json(updatedMembership);
     } catch (err) {
-      console.log(err.message);
-      next(err);
+      next({ message: err, statusCode: 400 });
     }
   }
 );
@@ -212,24 +152,24 @@ router.put(
 router.delete(
   '/:id/memberships',
   async (req: Request, res: Response, next: NextFunction) => {
-    const id = req.params.id;
-    const { org_id } = req.body;
-
-    if (!org_id || !id) {
-      return next({
-        error: 'org_id or user id is not defined',
-      });
-    }
-
-    const userEmail = id.trim().toLowerCase();
-
     try {
-      let query =
-        'DELETE FROM organization_memberships WHERE org_id = $1 AND user_email = $2;';
-      await db.query(query, [org_id, userEmail]);
+      const id = req.params.id;
+      const { org_id } = req.body;
+
+      if (!org_id || !id) {
+        throw new Error('org_id or user id is not defined');
+      }
+
+      const userEmail = id.trim().toLowerCase();
+      const membership: IMembership = {
+        userEmail,
+        org_id,
+      };
+      const userService = new UserService();
+      await userService.DeleteMembership(membership);
       res.status(200).json({});
     } catch (err) {
-      next(err);
+      next({ message: err, statusCode: 400 });
     }
   }
 );
