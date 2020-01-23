@@ -3,7 +3,6 @@ import { IUser, IUserSafe } from '../interfaces/IUser';
 import db from '../db';
 import { nowISO, hashPassword, comparePasswords, decodeToken } from '../utils';
 import config from '../../config';
-import e from 'express';
 
 export default class AuthService {
   constructor() {}
