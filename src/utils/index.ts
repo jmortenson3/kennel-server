@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import jwt, { VerifyErrors } from 'jsonwebtoken';
 
 import db from '../db';
 
@@ -41,6 +41,29 @@ export const comparePasswords = async (
     console.log(err);
     return false;
   }
+};
+
+export const decodeToken = async (
+  token: string,
+  tokenKey: string
+): Promise<unknown> => {
+  const decodedToken = await new Promise((resolve, reject) => {
+    jwt.verify(token, tokenKey, function(
+      err: VerifyErrors,
+      decodedPayload: string | object
+    ) {
+      if (err) {
+        throw err;
+      }
+      if (decodedPayload) {
+        return decodedPayload;
+      } else {
+        console.log(decodedPayload);
+        throw Error('Something went wrong decoding the token.');
+      }
+    });
+  });
+  return decodedToken;
 };
 
 const urlIdCharacters =
