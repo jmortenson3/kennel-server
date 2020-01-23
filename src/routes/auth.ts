@@ -1,10 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
-import jwt, { SignOptions, VerifyErrors } from 'jsonwebtoken';
-import AuthService from '../services/auth';
 
+import AuthService from '../services/auth';
 import config from '../../config';
-import { hashPassword, comparePasswords, nowISO } from '../utils';
-import db from '../db';
 
 const router = express.Router();
 
