@@ -89,6 +89,7 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
     if (!id) {
       throw new Error('appointment id is not defined');
     }
+
     let {
       is_boarding,
       is_grooming,
