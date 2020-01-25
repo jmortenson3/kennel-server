@@ -151,22 +151,12 @@ export class AppointmentService {
         throw new Error('appointment not found');
       }
 
-      let now = nowISO();
-      const oldAppointment = selectResponse.rows[0];
-      let newAppointment: IAppointment = {
-        id: appointment.id,
-        loc_id: appointment.loc_id,
-        pet_id: appointment.pet_id || oldAppointment.pet_id,
-        is_boarding: appointment.is_boarding || oldAppointment.is_boarding,
-        is_grooming: appointment.is_grooming || oldAppointment.is_grooming,
-        dropoff_datetime:
-          appointment.dropoff_datetime || oldAppointment.dropoff_datetime,
-        pickup_datetime:
-          appointment.pickup_datetime || oldAppointment.pickup_datetime,
-        notes: appointment.notes || oldAppointment.notes,
-        status: appointment.status || oldAppointment.status,
-        updated_datetime: now,
-      };
+      const oldAppointment = <IAppointment>selectResponse.rows[0];
+      let newAppointment: IAppointment = Object.assign(
+        oldAppointment,
+        appointment
+      );
+      newAppointment.updated_datetime = nowISO();
 
       let updateQuery =
         'UPDATE appointments ' +
@@ -183,19 +173,36 @@ export class AppointmentService {
         '  status = $11 ' +
         'WHERE id = $1;';
 
-      let { rows } = await db.query(updateQuery, [
-        newAppointment.id,
-        newAppointment.is_boarding,
-        newAppointment.is_grooming,
-        newAppointment.dropoff_datetime,
-        newAppointment.pickup_datetime,
-        newAppointment.user_email,
-        newAppointment.pet_id,
-        newAppointment.updated_datetime,
-        newAppointment.loc_id,
-        newAppointment.notes,
-        newAppointment.status,
-      ]);
+      const {
+        id,
+        user_email,
+        status,
+        pickup_datetime,
+        dropoff_datetime,
+        pet_id,
+        notes,
+        is_grooming,
+        is_boarding,
+        loc_id,
+        updated_datetime,
+      } = appointment;
+
+      const queryParams = [
+        id,
+        is_boarding,
+        is_grooming,
+        dropoff_datetime,
+        pickup_datetime,
+        user_email,
+        pet_id,
+        updated_datetime,
+        loc_id,
+        notes,
+        status,
+      ];
+
+      await db.query(updateQuery, queryParams);
+      return newAppointment;
     } catch (err) {
       throw err;
     }
