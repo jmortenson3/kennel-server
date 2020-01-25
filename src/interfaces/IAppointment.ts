@@ -1,6 +1,6 @@
 export interface IAppointment {
-  id?: string;
   loc_id: string;
+  id?: string;
   is_boarding?: boolean;
   is_grooming?: boolean;
   dropoff_datetime?: string;
