@@ -1,160 +1,94 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { nowISO } from '../utils';
 import db from '../db';
+import { AppointmentService } from '../services/appointment';
+import { IAppointment } from '../interfaces/IAppointment';
 
 const router = express.Router();
 
 // create appointment
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
-  const {
-    is_boarding,
-    is_grooming,
-    loc_id,
-    dropoff_datetime,
-    pickup_datetime,
-    user_email,
-    pet_id,
-    notes,
-  } = req.body;
-
-  if (!user_email || !loc_id) {
-    return next({
-      error: 'user_email or loc_id is not defined',
-    });
-  }
-
   try {
-    let query =
-      'INSERT INTO appointments ' +
-      '(is_boarding, is_grooming, dropoff_datetime, pickup_datetime, user_email, pet_id, created_datetime, updated_datetime, loc_id, notes) ' +
-      'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ' +
-      'RETURNING id;';
-    const { rows } = await db.query(query, [
+    const {
       is_boarding,
       is_grooming,
+      loc_id,
       dropoff_datetime,
       pickup_datetime,
       user_email,
       pet_id,
-      nowISO(),
-      nowISO(),
-      loc_id,
       notes,
-    ]);
-    res.status(200).json({ data: rows[0] });
+    } = req.body;
+
+    if (!user_email || !loc_id) {
+      throw new Error('user_email or loc_id is not defined');
+    }
+
+    const appointment: IAppointment = {
+      is_boarding,
+      is_grooming,
+      loc_id,
+      dropoff_datetime,
+      pickup_datetime,
+      user_email,
+      pet_id,
+      notes,
+    };
+    const appointmentService = new AppointmentService();
+    const newAppointment = await appointmentService.CreateAppointment(
+      appointment
+    );
+    res.status(200).json({ data: newAppointment });
   } catch (err) {
-    console.log(err.message);
-    next(err);
+    next({ message: err, statusCode: 400 });
   }
 });
 
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
-  const id = req.params.id;
-
-  if (!id) {
-    return next({ error: 'appointment_id is not defined' });
-  }
-
   try {
-    let query =
-      'SELECT id, is_boarding, is_grooming, dropoff_datetime, pickup_datetime, user_id, pet_id, created_datetime, updated_datetime, loc_id, notes ' +
-      'FROM appointments ' +
-      'WHERE id = $1;';
-    const { rows } = await db.query(query, [id]);
-    res.status(200).json({ data: rows });
+    const id = req.params.id;
+
+    if (!id) {
+      return next({ error: 'appointment_id is not defined' });
+    }
+
+    const appointmentId = id.trim();
+    const appointmentService = new AppointmentService();
+    const appointments = await appointmentService.GetAppointment(appointmentId);
+    res.status(200).json({ data: appointments });
   } catch (err) {
-    console.log(err);
-    next(err);
+    next({ message: err, statusCode: 400 });
   }
 });
 
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
-  let rows;
+  let appointments: IAppointment[];
   try {
+    const appointmentService = new AppointmentService();
     if (req.query.loc_id) {
-      rows = await getApptsByLoc(req.query.loc_id);
+      appointments = await appointmentService.GetAppointmentsByLocation(
+        req.query.loc_id
+      );
     } else if (req.query.org_id) {
-      rows = await getApptsByOrg(req.query.org_id);
+      appointments = await appointmentService.GetAppointmentsByOrg(
+        req.query.org_id
+      );
     } else {
-      rows = await getAppts();
+      throw new Error('must specifiy search criteria, try by loc_id or org_id');
     }
-    res.status(200).json({ data: rows });
+    res.status(200).json({ data: appointments });
   } catch (err) {
-    next(err);
+    next({ message: err, statusCode: 400 });
   }
 });
 
-let getAppts = async () => {
-  let query =
-    'SELECT ' +
-    '  id, ' +
-    '  is_boarding, ' +
-    '  is_grooming, ' +
-    '  dropoff_datetime, ' +
-    '  pickup_datetime, ' +
-    '  user_email, ' +
-    '  pet_id, ' +
-    '  created_datetime, ' +
-    '  updated_datetime, ' +
-    '  loc_id, ' +
-    '  notes ' +
-    'FROM appointments;';
-  const { rows } = await db.query(query);
-  return rows;
-};
-
-let getApptsByOrg = async (org_id: string) => {
-  let query =
-    'SELECT ' +
-    '  appt.id, ' +
-    '  org.id org_id, ' +
-    '  is_boarding, ' +
-    '  is_grooming, ' +
-    '  dropoff_datetime, ' +
-    '  pickup_datetime, ' +
-    '  user_email, ' +
-    '  pet_id, ' +
-    '  appt.created_datetime, ' +
-    '  appt.updated_datetime, ' +
-    '  appt.loc_id, ' +
-    '  notes ' +
-    'FROM appointments appt, organizations org, locations loc ' +
-    'WHERE ' +
-    '  appt.loc_ id = loc.id ' +
-    '  and bra.org_id = org.id ' +
-    '  and org.id = $1;';
-  const { rows } = await db.query(query, [org_id]);
-  return rows;
-};
-
-let getApptsByLoc = async (loc_id: string) => {
-  let query =
-    'SELECT ' +
-    '  id, ' +
-    '  is_boarding, ' +
-    '  is_grooming, ' +
-    '  dropoff_datetime, ' +
-    '  pickup_datetime, ' +
-    '  user_email, ' +
-    '  pet_id, ' +
-    '  created_datetime, ' +
-    '  updated_datetime, ' +
-    '  location_id, ' +
-    '  notes ' +
-    'FROM appointments ' +
-    'WHERE loc_id = $1;';
-  const { rows } = await db.query(query, [loc_id]);
-  return rows;
-};
-
 router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
-  const id = req.params.id;
-
-  if (!id) {
-    return next({ error: 'appointment id is not defined' });
-  }
-
   try {
+    const id = req.params.id;
+
+    if (!id) {
+      throw new Error('appointment id is not defined');
+    }
     let {
       is_boarding,
       is_grooming,
@@ -167,89 +101,45 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
       status,
     } = req.body;
 
-    let selectQuery =
-      'SELECT id, is_boarding, is_grooming, dropoff_datetime, pickup_datetime, user_email, pet_id, created_datetime, updated_datetime, loc_id, notes, status ' +
-      'FROM appointments ' +
-      'WHERE id = $1;';
-    let selectResponse = await db.query(selectQuery, [id]);
-
-    if (selectResponse.rows.length === 0) {
-      return next({ error: 'appointment not found' });
-    }
-
-    let thisAppt = selectResponse.rows[0];
-    is_boarding = is_boarding || thisAppt.is_boarding;
-    is_grooming = is_grooming || thisAppt.is_grooming;
-    dropoff_datetime = dropoff_datetime || thisAppt.dropoff_datetime;
-    pickup_datetime = pickup_datetime || thisAppt.pickup_datetime;
-    user_email = user_email || thisAppt.user_email;
-    pet_id = pet_id || thisAppt.pet_id;
-    loc_id = loc_id || thisAppt.loc_id;
-    notes = notes || thisAppt.notes;
-    status = status || thisAppt.status;
-
-    let updateQuery =
-      'UPDATE appointments ' +
-      'SET ' +
-      '  is_boarding = $2, ' +
-      '  is_grooming = $3, ' +
-      '  dropoff_datetime = $4, ' +
-      '  pickup_datetime = $5, ' +
-      '  user_email = $6, ' +
-      '  pet_id = $7, ' +
-      '  updated_datetime = $8, ' +
-      '  loc_id = $9, ' +
-      '  notes = $10, ' +
-      '  status = $11 ' +
-      'WHERE id = $1;';
-    let updatedDatetime = nowISO();
-    let { rows } = await db.query(updateQuery, [
-      id,
+    const appointment: IAppointment = {
+      id: id.trim(),
+      loc_id,
       is_boarding,
       is_grooming,
+      notes,
+      pet_id,
       dropoff_datetime,
       pickup_datetime,
-      user_email,
-      pet_id,
-      updatedDatetime,
-      loc_id,
-      notes,
       status,
-    ]);
-    res.status(200).json({
-      id,
-      is_boarding,
-      is_grooming,
-      dropoff_datetime,
-      pickup_datetime,
       user_email,
-      pet_id,
-      updatedDatetime,
-      loc_id,
-      notes,
-      status,
-    });
+    };
+
+    const appointmentService = new AppointmentService();
+    const updatedAppointment = await appointmentService.UpdateAppointment(
+      appointment
+    );
+
+    res.status(200).json({ data: updatedAppointment });
   } catch (err) {
-    console.log(err.message);
-    next(err);
+    next({ message: err, statusCode: 400 });
   }
 });
 
 router.delete(
   '/:id',
   async (req: Request, res: Response, next: NextFunction) => {
-    const id = req.params.id;
-
-    if (!id) {
-      return next({ error: 'appointment id is not defined' });
-    }
-
     try {
-      let query = 'DELETE FROM appointments WHERE id = $1;';
-      await db.query(query, [id]);
-      res.status(200).json({});
+      const id = req.params.id;
+
+      if (!id) {
+        throw new Error('appointment id is not defined');
+      }
+
+      const appointmentId = id.trim();
+      const appointmentService = new AppointmentService();
+      await appointmentService.DeleteAppointment(appointmentId);
     } catch (err) {
-      next(err);
+      next({ message: err, statusCode: 400 });
     }
   }
 );
