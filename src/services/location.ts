@@ -40,6 +40,7 @@ export class LocationService {
           created_datetime: row.created_datetime,
           updated_datetime: row.updated_datetime,
         };
+        return location;
       });
       return locations;
     } catch (err) {
@@ -79,24 +80,18 @@ export class LocationService {
         throw new Error('location not found');
       }
 
-      const oldLocation = selectRows.rows[0];
-      const now = nowISO();
-      const newLocation: ILocation = {
-        id: location.id,
-        org_id: location.org_id,
-        loc_name: location.loc_name || oldLocation.loc_name,
-        updated_datetime: now,
-      };
+      const oldLocation = <ILocation>selectRows.rows[0];
+      const newLocation: ILocation = Object.assign(oldLocation, location);
+      newLocation.updated_datetime = nowISO();
+
+      const { id, org_id, loc_name, updated_datetime } = newLocation;
+      const queryParams = [id, org_id, loc_name, updated_datetime];
 
       let updateQuery =
         'UPDATE locations ' +
         'SET loc_name = $3, updated_datetime = $4' +
         'WHERE id = $1 and org_id = $2;';
-      await db.query(updateQuery, [
-        newLocation.id,
-        newLocation.loc_name,
-        newLocation.updated_datetime,
-      ]);
+      await db.query(updateQuery, queryParams);
       return newLocation;
     } catch (err) {
       throw err;

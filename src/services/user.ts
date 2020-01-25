@@ -1,6 +1,7 @@
 import { IUserSafe } from '../interfaces/IUser';
 import db from '../db';
 import { IMembership } from '../interfaces/IMembership';
+import { nowISO } from '../utils';
 
 export class UserService {
   constructor() {}
@@ -61,34 +62,35 @@ export class UserService {
         throw new Error('membership not found');
       }
 
-      let oldMembership = selectResponse.rows[0];
-      const newMembership: IMembership = {
-        org_id: membership.org_id,
-        userEmail: membership.userEmail,
-        can_accept_appointments:
-          membership.can_accept_appointments ||
-          oldMembership.can_accept_appointments,
-        can_deny_appointments:
-          membership.can_deny_appointments ||
-          oldMembership.can_deny_appointments,
-        can_edit_kennel_layout:
-          membership.can_edit_kennel_layout ||
-          oldMembership.can_edit_kennel_layout,
-        updated_datetime: membership.updated_datetime,
-      };
+      let oldMembership = <IMembership>selectResponse.rows[0];
+      const newMembership: IMembership = Object.assign(
+        oldMembership,
+        membership
+      );
+      newMembership.updated_datetime = nowISO();
+
+      const {
+        org_id,
+        userEmail,
+        can_accept_appointments,
+        can_deny_appointments,
+        can_edit_kennel_layout,
+        updated_datetime,
+      } = newMembership;
+      const queryParams = [
+        org_id,
+        userEmail,
+        can_accept_appointments,
+        can_deny_appointments,
+        can_edit_kennel_layout,
+        updated_datetime,
+      ];
 
       let updateQuery =
         'UPDATE organization_memberships ' +
         'SET can_accept_appointments = $3, can_deny_appointments = $4, can_edit_kennel_layout = $5, updated_datetime = $6' +
         'WHERE org_id = $1 AND user_email = $2;';
-      await db.query(updateQuery, [
-        membership.org_id,
-        membership.userEmail,
-        newMembership.can_accept_appointments,
-        newMembership.can_deny_appointments,
-        newMembership.can_edit_kennel_layout,
-        newMembership.updated_datetime,
-      ]);
+      await db.query(updateQuery, queryParams);
       return newMembership;
     } catch (err) {
       throw err;
