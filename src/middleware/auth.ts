@@ -8,26 +8,30 @@ export const authenticatedRoute = (
   res: Response,
   next: NextFunction
 ) => {
-  if (!req.cookies || !req.cookies.token) {
-    return next({ message: 'login is required', status: 401 });
-  }
+  try {
+    if (!req.cookies || !req.cookies.token) {
+      throw new Error('login is required to access this resource');
+    }
 
-  jwt.verify(req.cookies.token, config.tokenKey, function(
-    err: VerifyErrors,
-    decodedPayload: string | object
-  ) {
-    if (err) {
-      console.log(err);
-    }
-    if (decodedPayload) {
-      logem('The payload was decoded OK');
-      next();
-    } else {
-      logem('Something went wrong decoding the payload...');
-      logem(<string>decodedPayload);
-      next({ message: 'bad token', status: 403 });
-    }
-  });
+    jwt.verify(req.cookies.token, config.tokenKey, function(
+      err: VerifyErrors,
+      decodedPayload: string | object
+    ) {
+      if (err) {
+        throw err;
+      }
+      if (decodedPayload) {
+        logem('The payload was decoded OK');
+        next();
+      } else {
+        logem('Something went wrong decoding the payload...');
+        logem(<string>decodedPayload);
+        next({ message: 'bad token', status: 403 });
+      }
+    });
+  } catch (err) {
+    next({ message: err, statusCode: 403 });
+  }
 };
 
 export const authorizedRoute = (
@@ -35,23 +39,20 @@ export const authorizedRoute = (
   res: Response,
   next: NextFunction
 ) => {
-  if (!req.cookies || !req.cookies.token) {
-    logem('Cookies not set');
-    return next({ message: 'login is required', status: 401 });
-  }
-
   try {
+    if (!req.cookies || !req.cookies.token) {
+      throw new Error('unauthorized');
+    }
+
     const user = getUserFromToken(req.cookies.token);
     if (user.id !== req.params.user_id) {
-      next({
-        error:
-          'The user in cookies does not match the user in the request params.',
-        status: 403,
-      });
+      throw new Error(
+        'The user in cookies does not match the user in the request params.'
+      );
     } else {
       next();
     }
   } catch (err) {
-    next({ message: 'error getting user from cookie', status: 400 });
+    next({ message: err, statusCode: 403 });
   }
 };
