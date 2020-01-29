@@ -1,7 +1,5 @@
 import express from 'express';
-import fs from 'fs';
 import cors from 'cors';
-import https from 'https';
 import cookieParser from 'cookie-parser';
 
 import config from '../config';
@@ -13,6 +11,7 @@ const app = express();
 
 app.use(express.json());
 app.use(cookieParser());
+console.log(`Accepting requests from...${config.clientUrl}`);
 app.use(cors({ credentials: true, origin: [config.clientUrl] }));
 app.use(routes);
 app.use(errorHandler);
@@ -21,14 +20,4 @@ app.use((req, res, next) => {
   res.status(404).json({ message: "there's nothing here :(" });
 });
 
-https
-  .createServer(
-    {
-      key: fs.readFileSync(`server.key`),
-      cert: fs.readFileSync(`server.cert`),
-    },
-    app
-  )
-  .listen(port, () => {
-    console.log(`App running securely on port ${port}`);
-  });
+app.listen(port, () => console.log(`Running on port ${port}`));
