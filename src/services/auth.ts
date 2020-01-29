@@ -94,6 +94,8 @@ export default class AuthService {
           email: userPayload.email,
         };
         return user;
+      } else {
+        throw new Error('token could not be decoded');
       }
     } catch (err) {
       console.log('Something went wrong decoding the payload...');
