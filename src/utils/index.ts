@@ -53,13 +53,13 @@ export const decodeToken = async (
       decodedPayload: string | object
     ) {
       if (err) {
-        throw err;
+        reject(err);
       }
       if (decodedPayload) {
-        return decodedPayload;
+        resolve(decodedPayload);
       } else {
         console.log(decodedPayload);
-        throw Error('Something went wrong decoding the token.');
+        reject('Something went wrong decoding the token.');
       }
     });
   });
