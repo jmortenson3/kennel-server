@@ -11,26 +11,20 @@ router.post(
     const { password, email } = req.body;
 
     if (!email || !password) {
-      return next({
-        error: 'email or password not supplied',
-        status: 401,
-      });
+      throw new Error('email or password not supplied');
     }
 
     try {
       const authService = new AuthService();
       const { user, token } = await authService.Login({ email, password });
-
       res.cookie('token', token, {
         maxAge: config.tokenExpirationSeconds * 1000,
-        secure: true,
         httpOnly: true,
       });
 
       res.status(204).send();
     } catch (err) {
-      console.log(err);
-      next({ error: 'login: could not find user in db' });
+      next({ message: err, statusCode: 400 });
     }
   }
 );
@@ -42,10 +36,7 @@ router.post(
       const { email, password } = req.body;
 
       if (!email || !password) {
-        return next({
-          error: 'email or password not supplied',
-          status: 401,
-        });
+        throw new Error('email or password not supplied');
       }
       const authService = new AuthService();
       const { user, token } = await authService.SignUp({ email, password });
@@ -58,8 +49,7 @@ router.post(
 
       res.status(204).send();
     } catch (err) {
-      console.log(err);
-      next({ error: 'signup: problem happened' });
+      next({ message: err, statusCode: 400 });
     }
   }
 );
@@ -69,7 +59,7 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.cookies || !req.cookies.token) {
-        throw new Error('can not remember user');
+        throw new Error('no cookie - can not remember user');
       }
 
       const authService = new AuthService();
@@ -77,7 +67,7 @@ router.post(
 
       res.status(200).json({ data: user });
     } catch (err) {
-      next(err);
+      next({ message: err, statusCode: 400 });
     }
   }
 );
