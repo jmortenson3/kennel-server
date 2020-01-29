@@ -1,151 +1,104 @@
 import express, { Request, Response, NextFunction } from 'express';
-import { nowISO } from '../utils';
-import db from '../db';
+
+import { PetService } from '../services/pet';
+import { IPet } from '../interfaces/IPet';
 
 const router = express.Router();
 
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
-  const { user_email, pet_name, birth_date, pet_type, breed } = req.body;
-  if (!pet_name || !user_email) {
-    return next({ error: 'user_email or pet_name is not defined' });
-  }
   try {
-    let query =
-      'INSERT INTO pets ' +
-      '(user_email, pet_name, birth_date, created_datetime, updated_datetime, pet_type, breed) ' +
-      'VALUES ($1, $2, $3, $4, $5, $6, $7) ' +
-      'RETURNING id;';
-    const { rows } = await db.query(query, [
-      user_email.toLowerCase(),
+    const { user_email, pet_name, birth_date, pet_type, breed } = req.body;
+
+    if (!pet_name || !user_email) {
+      throw new Error('user_email or pet_name is not defined');
+    }
+
+    const pet: IPet = {
       pet_name,
+      user_email: user_email.trim(),
       birth_date,
-      nowISO(),
-      nowISO(),
       pet_type,
       breed,
-    ]);
-    res.status(200).json({ data: rows[0] });
+    };
+    const petService = new PetService();
+    const newPet = petService.CreatePet(pet);
+    res.status(200).json({ data: newPet });
   } catch (err) {
-    console.log(err.message);
-    next(err);
+    next({ message: err, statusCode: 400 });
   }
 });
 
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
-  const id = req.params.id;
-
-  if (!id) {
-    return next({ error: 'pet id is not defined' });
-  }
-
   try {
-    let query =
-      'SELECT id, pet_name, user_email, birth_date, created_datetime, updated_datetime, pet_type, breed ' +
-      'FROM pets ' +
-      'WHERE id = $1;';
-    const { rows } = await db.query(query, [id]);
-    res.status(200).json({ data: rows });
+    const id = req.params.id;
+
+    if (!id) {
+      throw new Error('pet id is not defined');
+    }
+
+    const petService = new PetService();
+    const pet = petService.GetPetById(id);
+    res.status(200).json({ data: pet });
   } catch (err) {
-    console.log(err);
-    next(err);
+    next({ message: err, statusCode: 400 });
   }
 });
 
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    let rows;
+    const petService = new PetService();
+    let pets: IPet[];
     if (req.query.user_email) {
-      rows = await getPetsByUser(req.query.user_email);
+      pets = await petService.GetPetsByUser(req.query.user_email);
     } else {
-      rows = await getPets();
+      pets = await petService.GetPets();
     }
 
-    res.status(200).json({ data: rows });
+    res.status(200).json({ data: pets });
   } catch (err) {
-    next(err);
+    next({ message: err, statusCode: 400 });
   }
 });
-
-let getPets = async () => {
-  let query =
-    'SELECT id, pet_name, user_email, birth_date, created_datetime, updated_datetime, pet_type, breed ' +
-    'FROM pets;';
-  const { rows } = await db.query(query);
-  return rows;
-};
-
-let getPetsByUser = async (user_email: string) => {
-  let query =
-    'SELECT id, pet_name, user_email, birth_date, created_datetime, updated_datetime, pet_type, breed ' +
-    'FROM pets ' +
-    'WHERE user_email = $1;';
-  const { rows } = await db.query(query, [user_email]);
-  return rows;
-};
 
 router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
-  const id = req.params.id;
-
-  if (!id) {
-    return next({ error: 'pet id is not defined' });
-  }
-
   try {
-    let { user_email, pet_name, birth_date, pet_type, breed } = req.body;
-
-    let selectQuery =
-      'SELECT id, pet_name, user_email, birth_date, created_datetime, updated_datetime, pet_type, breed ' +
-      'FROM pets ' +
-      'WHERE id = $1;';
-    let selectResponse = await db.query(selectQuery, [id]);
-
-    if (selectResponse.rows.length === 0) {
-      return next({ error: 'pet not found' });
-    }
-
-    let thisPet = selectResponse.rows[0];
-    user_email = user_email || thisPet.user_email;
-    pet_name = pet_name || thisPet.pet_name;
-    birth_date = birth_date || thisPet.birth_date;
-    pet_type = pet_type || thisPet.pet_type;
-    breed = breed || thisPet.breed;
-
-    let updateQuery =
-      'UPDATE pets ' +
-      'SET user_email = $2, pet_name = $3, birth_date = $4, pet_type = $5, breed = $6 ' +
-      'WHERE id = $1;';
-    let { rows } = await db.query(updateQuery, [
-      id,
-      user_email.toLowerCase(),
-      pet_name,
-      birth_date,
-      pet_type,
-      breed,
-    ]);
-    res
-      .status(200)
-      .json({ id, user_email, pet_name, birth_date, pet_type, breed });
-  } catch (err) {
-    console.log(err.message);
-    next(err);
-  }
-});
-
-router.delete(
-  '/:id',
-  async (req: Request, res: Response, next: NextFunction) => {
     const id = req.params.id;
 
     if (!id) {
       return next({ error: 'pet id is not defined' });
     }
 
+    let { user_email, pet_name, birth_date, pet_type, breed } = req.body;
+    const pet: IPet = {
+      user_email: user_email.toLowerCase(),
+      pet_name,
+      birth_date,
+      pet_type,
+      breed,
+    };
+    const petService = new PetService();
+    const newPet = petService.UpdatePet(pet);
+    res.status(200).json({ data: newPet });
+  } catch (err) {
+    next({ message: err, statusCode: 400 });
+  }
+});
+
+router.delete(
+  '/:id',
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
-      let query = 'DELETE FROM pets WHERE id = $1;';
-      await db.query(query, [id]);
+      const id = req.params.id;
+
+      if (!id) {
+        throw new Error('pet id is not defined');
+      }
+
+      const petService = new PetService();
+      await petService.DeletePet(id);
       res.status(200).json({});
     } catch (err) {
-      next(err);
+      next({ message: err, statusCode: 400 });
     }
   }
 );
