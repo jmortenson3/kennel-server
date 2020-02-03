@@ -1,17 +1,17 @@
 import express, { Request, Response, NextFunction } from 'express';
-import { nowISO } from '../utils';
-import db from '../db';
+
 import { AppointmentService } from '../services/appointment';
 import { IAppointment } from '../interfaces/IAppointment';
+import { UUID } from '../models/uuid';
 
 const router = express.Router();
 
-// create appointment
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const {
       is_boarding,
       is_grooming,
+      org_id,
       loc_id,
       dropoff_datetime,
       pickup_datetime,
@@ -20,18 +20,40 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       notes,
     } = req.body;
 
-    if (!user_email || !loc_id) {
-      throw new Error('user_email or loc_id is not defined');
+    if (!user_email || !loc_id || !org_id) {
+      throw new Error('user_email or loc_id or org_id is not defined');
+    }
+
+    const locationId = loc_id.trim();
+    const locUuid = new UUID(locationId);
+
+    if (!locUuid.isValid()) {
+      throw new Error('invalid location id');
+    }
+
+    const orgId = org_id.trim();
+    const orgUuid = new UUID(orgId);
+
+    if (!orgUuid.isValid()) {
+      throw new Error('invalid org id');
+    }
+
+    const petId = pet_id.trim();
+    const petUuid = new UUID(petId);
+
+    if (!petUuid.isValid()) {
+      throw new Error('invalid pet id');
     }
 
     const appointment: IAppointment = {
       is_boarding,
       is_grooming,
-      loc_id,
+      org_id: orgId,
+      loc_id: locationId,
       dropoff_datetime,
       pickup_datetime,
       user_email,
-      pet_id,
+      pet_id: petId,
       notes,
     };
     const appointmentService = new AppointmentService();
@@ -40,7 +62,7 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     );
     res.status(200).json({ data: newAppointment });
   } catch (err) {
-    next({ message: err, statusCode: 400 });
+    next({ message: err.message, statusCode: 400 });
   }
 });
 
@@ -49,15 +71,21 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
     const id = req.params.id;
 
     if (!id) {
-      return next({ error: 'appointment_id is not defined' });
+      throw new Error('appointment_id is not defined');
     }
 
     const appointmentId = id.trim();
+    const uuid = new UUID(appointmentId);
+
+    if (!uuid.isValid()) {
+      throw new Error('invalid org id');
+    }
+
     const appointmentService = new AppointmentService();
     const appointments = await appointmentService.GetAppointment(appointmentId);
     res.status(200).json({ data: appointments });
   } catch (err) {
-    next({ message: err, statusCode: 400 });
+    next({ message: err.message, statusCode: 400 });
   }
 });
 
@@ -65,20 +93,33 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   let appointments: IAppointment[];
   try {
     const appointmentService = new AppointmentService();
+
     if (req.query.loc_id) {
-      appointments = await appointmentService.GetAppointmentsByLocation(
-        req.query.loc_id
-      );
+      const locId = req.query.loc_id.trim();
+      const uuid = new UUID(locId);
+      if (!uuid.isValid()) {
+        throw new Error('invalid loc id');
+      }
+      appointments = await appointmentService.GetAppointmentsByLocation(locId);
     } else if (req.query.org_id) {
-      appointments = await appointmentService.GetAppointmentsByOrg(
-        req.query.org_id
-      );
+      const orgId = req.query.org_id.trim();
+      const uuid = new UUID(orgId);
+      if (!uuid.isValid()) {
+        throw new Error('invalid org id');
+      }
+      appointments = await appointmentService.GetAppointmentsByOrg(orgId);
+    } else if (req.query.user_email) {
+      const userEmail: string = req.query.user_email;
+      const emailLower = userEmail.trim().toLowerCase();
+      appointments = await appointmentService.GetAppointmentsByUser(emailLower);
     } else {
-      throw new Error('must specifiy search criteria, try by loc_id or org_id');
+      throw new Error(
+        'must specifiy search criteria, try by loc_id, user_email, or org_id'
+      );
     }
     res.status(200).json({ data: appointments });
   } catch (err) {
-    next({ message: err, statusCode: 400 });
+    next({ message: err.message, statusCode: 400 });
   }
 });
 
@@ -90,6 +131,13 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
       throw new Error('appointment id is not defined');
     }
 
+    const appointmentId = id.trim();
+    const uuid = new UUID(appointmentId);
+
+    if (!uuid.isValid()) {
+      throw new Error('invalid appointment id');
+    }
+
     let {
       is_boarding,
       is_grooming,
@@ -98,13 +146,15 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
       user_email,
       pet_id,
       location_id: loc_id,
+      org_id,
       notes,
       status,
     } = req.body;
 
     const appointment: IAppointment = {
-      id: id.trim(),
+      id: appointmentId,
       loc_id,
+      org_id,
       is_boarding,
       is_grooming,
       notes,
@@ -122,7 +172,7 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
 
     res.status(200).json({ data: updatedAppointment });
   } catch (err) {
-    next({ message: err, statusCode: 400 });
+    next({ message: err.message, statusCode: 400 });
   }
 });
 
@@ -137,10 +187,17 @@ router.delete(
       }
 
       const appointmentId = id.trim();
+      const uuid = new UUID(appointmentId);
+
+      if (!uuid.isValid()) {
+        throw new Error('invalid org id');
+      }
+
       const appointmentService = new AppointmentService();
       await appointmentService.DeleteAppointment(appointmentId);
+      res.status(200).send({});
     } catch (err) {
-      next({ message: err, statusCode: 400 });
+      next({ message: err.message, statusCode: 400 });
     }
   }
 );

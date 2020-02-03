@@ -1,47 +1,42 @@
 import { IUserSafe } from '../interfaces/IUser';
-import db from '../db';
 import { IMembership } from '../interfaces/IMembership';
-import { nowISO } from '../utils';
+import { nowISO, clone } from '../utils';
+import User from '../models/user';
+import Membership from '../models/membership';
 
 export class UserService {
   constructor() {}
 
   public async GetUserDetails(userEmail: string) {
     try {
-      let query =
-        'SELECT email, created_datetime, updated_datetime ' +
-        'FROM users ' +
-        'WHERE email = $1;';
-      const { rows } = await db.query(query, [userEmail]);
-      const { email, created_datetime, updated_datetime } = rows[0];
-      const user: IUserSafe = { email, created_datetime, updated_datetime };
+      const userRecord = await User.findOne({
+        attributes: ['email', 'created_datetime', 'updated_datetime'],
+        where: {
+          email: userEmail,
+        },
+      });
+
+      if (!userRecord) {
+        throw new Error('user not found');
+      }
+
+      const user = <IUserSafe>userRecord.toJSON();
       return user;
     } catch (err) {
       throw err;
     }
   }
 
-  public async GetMemberships(userEmail: string) {
+  public async GetMembershipsByUser(userEmail: string) {
     try {
-      let query =
-        'SELECT org_id, user_email, can_accept_appointments, can_deny_appointments, can_edit_kennel_layout ' +
-        'FROM organization_memberships ' +
-        'WHERE user_email = $1;';
-      const { rows } = await db.query(query, [userEmail]);
-      return rows;
-    } catch (err) {
-      throw err;
-    }
-  }
+      const user = await User.findOne({ where: { email: userEmail } });
 
-  public async GetMembershipsByOrg(userEmail: string, orgId: string) {
-    try {
-      let query =
-        'SELECT org_id, user_email, can_accept_appointments, can_deny_appointments, can_edit_kennel_layout ' +
-        'FROM organization_memberships ' +
-        'WHERE user_email = $1 and org_id = $2;';
-      const { rows } = await db.query(query, [userEmail, orgId]);
-      return rows;
+      if (!user) {
+        throw new Error('user not found');
+      }
+
+      const memberships = await user.getMemberships();
+      return memberships;
     } catch (err) {
       throw err;
     }
@@ -49,77 +44,79 @@ export class UserService {
 
   public async UpdateMembership(membership: IMembership) {
     try {
-      let selectQuery =
-        'SELECT org_id, user_email, can_accept_appointments, can_deny_appointments, can_edit_kennel_layout ' +
-        'FROM organization_memberships ' +
-        'WHERE org_id = $1 AND user_email = $2;';
-      let selectResponse = await db.query(selectQuery, [
-        membership.org_id,
-        membership.userEmail,
-      ]);
+      const oldMembership = await Membership.findOne({
+        where: {
+          org_id: membership.org_id,
+          user_email: membership.user_email,
+        },
+      });
 
-      if (selectResponse.rows.length === 0) {
+      if (!oldMembership) {
         throw new Error('membership not found');
       }
 
-      let oldMembership = <IMembership>selectResponse.rows[0];
-      const newMembership: IMembership = Object.assign(
-        oldMembership,
-        membership
-      );
-      newMembership.updated_datetime = nowISO();
-
       const {
-        org_id,
-        userEmail,
         can_accept_appointments,
         can_deny_appointments,
         can_edit_kennel_layout,
-        updated_datetime,
-      } = newMembership;
-      const queryParams = [
-        org_id,
-        userEmail,
-        can_accept_appointments,
-        can_deny_appointments,
-        can_edit_kennel_layout,
-        updated_datetime,
-      ];
+      } = Object.assign(<IMembership>oldMembership, membership);
 
-      let updateQuery =
-        'UPDATE organization_memberships ' +
-        'SET can_accept_appointments = $3, can_deny_appointments = $4, can_edit_kennel_layout = $5, updated_datetime = $6' +
-        'WHERE org_id = $1 AND user_email = $2;';
-      await db.query(updateQuery, queryParams);
+      const newMembership = await oldMembership.update({
+        can_accept_appointments,
+        can_deny_appointments,
+        can_edit_kennel_layout,
+        updated_datetime: nowISO(),
+      });
       return newMembership;
     } catch (err) {
       throw err;
     }
   }
 
-  public async CreateMembership(membership: IMembership): Promise<void> {
+  public async CreateMembership(membership: IMembership): Promise<IMembership> {
     try {
-      let query =
-        'INSERT INTO organization_memberships ' +
-        '(org_id, user_email, created_datetime, updated_datetime) ' +
-        'VALUES ($1, $2, $3, $4) ' +
-        'RETURNING org_id, user_email, created_datetime, updated_datetime;';
-      await db.query(query, [
-        membership.org_id,
-        membership.userEmail,
-        membership.created_datetime,
-        membership.updated_datetime,
-      ]);
+      const membershipModel: Membership = clone(membership);
+      const now = nowISO();
+      membershipModel.created_datetime = now;
+      membershipModel.updated_datetime = now;
+      const newMembership = await Membership.create(membershipModel);
+      return newMembership;
     } catch (err) {
       throw err;
     }
   }
 
-  public async DeleteMembership(membership: IMembership): Promise<void> {
+  public async DeleteMembership(orgId: string, userEmail: string) {
     try {
-      let query =
-        'DELETE FROM organization_memberships WHERE org_id = $1 AND user_email = $2;';
-      await db.query(query, [membership.org_id, membership.userEmail]);
+      const membership = await Membership.findOne({
+        where: {
+          organization_id: orgId,
+          user_email: userEmail,
+        },
+      });
+
+      if (!membership) {
+        throw new Error('membership not found');
+      }
+      await membership.destroy();
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  public async DeleteUser(userEmail: string) {
+    try {
+      const user = await User.findOne({
+        where: {
+          email: userEmail,
+        },
+      });
+
+      if (!user) {
+        throw new Error('user email not found');
+      }
+
+      await user.destroy();
     } catch (err) {
       throw err;
     }

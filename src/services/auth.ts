@@ -1,105 +1,116 @@
-import jwt, { SignOptions, VerifyErrors } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { IUser, IUserSafe } from '../interfaces/IUser';
-import db from '../db';
 import { nowISO, hashPassword, comparePasswords, decodeToken } from '../utils';
 import config from '../../config';
+import User from '../models/user';
 
 export default class AuthService {
   constructor() {}
 
   public async SignUp(
     user: IUser
-  ): Promise<{ user: IUserSafe; token: string }> {
-    const { email, password } = user;
-    let emailLower = email.toLowerCase();
-
-    // Check email availability
+  ): Promise<{ newUser: IUserSafe; token: string }> {
     try {
-      const query = 'SELECT email FROM users WHERE email = $1';
-      const { rows } = await db.query(query, [emailLower]);
-      if (rows && rows.length != 0) {
-        throw Error();
+      if (!user.email) {
+        throw new Error('email not provided for signup');
       }
-    } catch (err) {
-      console.log(err);
-      throw new Error('signup: email taken');
-    }
 
-    try {
-      let hashedPassword: string | unknown;
-      hashedPassword = await hashPassword(password);
-      let query =
-        'INSERT INTO users (email, hashed_password, created_datetime, updated_datetime) ' +
-        'VALUES ($1, $2, $3, $4) RETURNING email;';
+      const emailLower = user.email.toLowerCase();
 
-      await db.query(query, [emailLower, hashedPassword, nowISO(), nowISO()]);
+      const potentialUser = await User.findOne({
+        where: { email: emailLower },
+      });
 
-      const user: IUserSafe = {
+      if (potentialUser) {
+        throw new Error('user already exists');
+      }
+
+      const hashedPassword = await hashPassword(user.password);
+      const now = nowISO();
+      const userModel: IUserSafe = {
         email: emailLower,
+        hashed_password: hashedPassword,
+        created_datetime: now,
+        updated_datetime: now,
       };
 
-      const options: SignOptions = {
-        algorithm: config.hashFunction,
-        expiresIn: config.tokenExpirationSeconds,
-      };
-
-      const token = jwt.sign(user, config.tokenKey, options);
-      return { user, token };
+      const newUser = await User.create(userModel);
+      const userSafe = <IUserSafe>newUser.toJSON();
+      const token = this.CreateToken(userSafe);
+      return { newUser: userSafe, token };
     } catch (err) {
       throw err;
     }
   }
 
   public async Login(user: IUser): Promise<{ user: IUserSafe; token: string }> {
-    const { email, password } = user;
-    let emailLower = email.toLowerCase();
-
     try {
-      let query = 'SELECT email, hashed_password FROM users WHERE email = $1';
-
-      const { rows } = await db.query(query, [emailLower]);
-      const hashedPassword = rows[0].hashed_password;
-
-      if (!hashedPassword) {
-        throw Error('login: no hashed password from db');
+      if (!user.email) {
+        throw new Error('email not provided for login');
       }
 
-      const correctPassword = await comparePasswords(password, hashedPassword);
+      let emailLower = user.email.toLowerCase();
+      const userRecord = await User.findOne({ where: { email: emailLower } });
+
+      if (!userRecord) {
+        throw new Error('user not found');
+      }
+
+      if (!userRecord.hashed_password) {
+        throw new Error('no hashed password from db');
+      }
+
+      const correctPassword = await comparePasswords(
+        user.password,
+        userRecord.hashed_password
+      );
+
       if (!correctPassword) {
-        throw Error('login: password mismatch');
+        throw new Error('password incorrect');
       }
 
-      const user: IUserSafe = {
-        email: rows[0].email,
-      };
+      const userSafe = <IUserSafe>userRecord.toJSON();
 
-      const options: SignOptions = {
-        algorithm: config.hashFunction,
-        expiresIn: config.tokenExpirationSeconds,
-      };
+      const token = this.CreateToken(userSafe);
 
-      const token = jwt.sign(user, config.tokenKey, options);
-      return { user, token };
+      return { user: userSafe, token };
     } catch (err) {
       throw err;
     }
   }
 
-  public async Recall(token: string) {
+  public async Recall(
+    token: string
+  ): Promise<{ user: IUserSafe; token: string }> {
     try {
       const decodedToken = await decodeToken(token, config.tokenKey);
-      if (decodedToken) {
-        const userPayload = <any>decodedToken;
-        const user = {
-          email: userPayload.email,
-        };
-        return user;
-      } else {
+      if (!decodedToken) {
         throw new Error('token could not be decoded');
       }
+
+      console.log(decodeToken);
+
+      const userPayload = <any>decodedToken;
+      if (!userPayload.email) {
+        throw new Error('email not found in token');
+      }
+      const emailLower = userPayload.email.toLowerCase();
+      const userRecord = await User.findOne({
+        where: {
+          email: emailLower,
+        },
+      });
+
+      const userSafe = <IUserSafe>userRecord.toJSON();
+      const newToken = this.CreateToken(userSafe);
+      return { user: userSafe, token: newToken };
     } catch (err) {
-      console.log('Something went wrong decoding the payload...');
       throw err;
     }
+  }
+
+  private CreateToken(user: IUserSafe): string {
+    const token = jwt.sign(user, config.tokenKey, config.jwtSignOptions);
+    return token;
   }
 }

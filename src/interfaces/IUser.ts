@@ -6,6 +6,7 @@ export interface IUser {
 
 export interface IUserSafe {
   email: string;
+  hashed_password?: string | unknown;
   created_datetime?: string;
   updated_datetime?: string;
 }

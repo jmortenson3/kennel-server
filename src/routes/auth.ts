@@ -17,14 +17,10 @@ router.post(
     try {
       const authService = new AuthService();
       const { user, token } = await authService.Login({ email, password });
-      res.cookie('token', token, {
-        maxAge: config.tokenExpirationSeconds * 1000,
-        httpOnly: true,
-      });
-
-      res.status(204).send();
+      res.cookie('token', token, config.cookieOptions);
+      res.status(200).json({ data: user });
     } catch (err) {
-      next({ message: err, statusCode: 400 });
+      next({ message: err.message, statusCode: 400 });
     }
   }
 );
@@ -38,18 +34,14 @@ router.post(
       if (!email || !password) {
         throw new Error('email or password not supplied');
       }
+
       const authService = new AuthService();
-      const { user, token } = await authService.SignUp({ email, password });
+      const { newUser, token } = await authService.SignUp({ email, password });
 
-      res.cookie('token', token, {
-        //TODO move "* 1000" to a utils method called "convertSecondsToMilliseconds"
-        maxAge: config.tokenExpirationSeconds * 1000,
-        httpOnly: true,
-      });
-
-      res.status(204).send();
+      res.cookie('token', token, config.cookieOptions);
+      res.status(200).json({ data: newUser });
     } catch (err) {
-      next({ message: err, statusCode: 400 });
+      next({ message: err.message, statusCode: 400 });
     }
   }
 );
@@ -63,11 +55,12 @@ router.post(
       }
 
       const authService = new AuthService();
-      const user = await authService.Recall(req.cookies.token);
+      const { user, token } = await authService.Recall(req.cookies.token);
 
+      res.cookie('token', token, config.cookieOptions);
       res.status(200).json({ data: user });
     } catch (err) {
-      next({ message: err, statusCode: 400 });
+      next({ message: err.message, statusCode: 400 });
     }
   }
 );

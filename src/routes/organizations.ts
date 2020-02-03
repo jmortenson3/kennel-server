@@ -1,15 +1,15 @@
 import express, { Request, Response, NextFunction } from 'express';
 
 import { nowISO } from '../utils';
-import db from '../db';
 import { OrganizationService } from '../services/organization';
 import { IOrganization } from '../interfaces/IOrganization';
+import { UUID } from '../models/uuid';
 
 const router = express.Router();
 
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { organization_name: org_name } = req.body;
+    const { org_name } = req.body;
 
     if (!org_name) {
       throw new Error('org_name is not defined');
@@ -29,7 +29,17 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     );
     res.status(200).json({ data: newOrganization });
   } catch (err) {
-    next({ message: err, statusCode: 400 });
+    next({ message: err.message, statusCode: 400 });
+  }
+});
+
+router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const organizationService = new OrganizationService();
+    const organizations = await organizationService.GetOrganizations();
+    res.status(200).json({ data: organizations });
+  } catch (err) {
+    next({ message: err.message, statusCode: 400 });
   }
 });
 
@@ -41,28 +51,42 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
       throw new Error('org id is not defined');
     }
 
+    const orgId = id.trim();
+    const uuid = new UUID(orgId);
+
+    if (!uuid.isValid()) {
+      throw new Error('invalid org id');
+    }
+
     const organizationService = new OrganizationService();
-    const appointment = await organizationService.GetOrganization(id);
-    res.status(200).json({ data: appointment });
+    const organization = await organizationService.GetOrganization(orgId);
+    res.status(200).json({ data: organization });
   } catch (err) {
-    next({ message: err, statusCode: 400 });
+    next({ message: err.message, statusCode: 400 });
   }
 });
 
 router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const id = req.params.org_id;
+    const id = req.params.id;
 
     if (!id) {
       throw new Error('org id is not defined');
     }
 
+    const orgId = id.trim();
+    const uuid = new UUID(orgId);
+
+    if (!uuid.isValid()) {
+      throw new Error('invalid org id');
+    }
+
     let { org_name, subdomain_name } = req.body;
 
     const organization: IOrganization = {
-      id: id.trim(),
-      org_name: org_name.trim(),
-      subdomain_name: subdomain_name.trim(),
+      id: orgId,
+      org_name: org_name ? org_name.trim() : org_name,
+      subdomain_name: subdomain_name ? subdomain_name.trim() : undefined,
     };
 
     const organizationService = new OrganizationService();
@@ -72,7 +96,7 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
 
     res.status(200).json({ data: newOrganization });
   } catch (err) {
-    next({ message: err, statusCode: 400 });
+    next({ message: err.message, statusCode: 400 });
   }
 });
 
@@ -86,11 +110,18 @@ router.delete(
         throw new Error('org id is not defined');
       }
 
+      const orgId = id.trim();
+      const uuid = new UUID(orgId);
+
+      if (!uuid.isValid()) {
+        throw new Error('invalid org id');
+      }
+
       const organizationService = new OrganizationService();
-      await organizationService.DeleteOrganization(id);
+      await organizationService.DeleteOrganization(orgId);
       res.status(200).json({});
     } catch (err) {
-      next({ message: err, statusCode: 400 });
+      next({ message: err.message, statusCode: 400 });
     }
   }
 );

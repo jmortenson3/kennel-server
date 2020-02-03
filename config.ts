@@ -1,9 +1,23 @@
-import { Algorithm } from 'jsonwebtoken';
+import { Algorithm, SignOptions } from 'jsonwebtoken';
+import { CookieOptions } from 'express';
+
+const tokenTTL = 86400;
+const tokenTTLMilliseconds = tokenTTL * 1000;
+
+const jwtSignOptions: SignOptions = {
+  algorithm: <Algorithm>'HS256',
+  expiresIn: tokenTTL,
+};
+
+const cookieOptions: CookieOptions = {
+  maxAge: tokenTTLMilliseconds,
+  httpOnly: true,
+};
 
 export default {
   tokenKey: '!JA#4akjaA$AL&(FjhAW$ma__w41PO1o@',
-  hashFunction: <Algorithm>'HS256',
-  tokenExpirationSeconds: 86400,
+  jwtSignOptions,
+  cookieOptions,
   clientUrl: 'http://localhost:3000',
   db: {
     uri:

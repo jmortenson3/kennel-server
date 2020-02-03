@@ -1,18 +1,14 @@
 import { IPet } from '../interfaces/IPet';
-import db from '../db';
 import { nowISO } from '../utils';
+import User from '../models/user';
+import Pet from '../models/pet';
 
 export class PetService {
   constructor() {}
 
   public async GetPetById(id: string) {
     try {
-      let query =
-        'SELECT id, pet_name, user_email, birth_date, created_datetime, updated_datetime, pet_type, breed ' +
-        'FROM pets ' +
-        'WHERE id = $1;';
-      const { rows } = await db.query(query, [id]);
-      const pet = <IPet>rows[0];
+      const pet = await Pet.findOne({ where: { id } });
       return pet;
     } catch (err) {
       throw err;
@@ -24,17 +20,15 @@ export class PetService {
       if (!userEmail) {
         throw new Error('userEmail is undefined');
       }
-      const cleansedUserEmail = userEmail.toLowerCase();
-      let query =
-        'SELECT id, pet_name, user_email, birth_date, created_datetime, updated_datetime, pet_type, breed ' +
-        'FROM pets ' +
-        'WHERE user_email = $1;';
-      const { rows } = await db.query(query, [cleansedUserEmail]);
-      const pets = rows.map(row => {
-        const pet = <IPet>row;
-        return pet;
-      });
 
+      const cleansedUserEmail = userEmail.toLowerCase();
+      const user = await User.findOne({ where: { email: cleansedUserEmail } });
+
+      if (!user) {
+        throw new Error('user not found');
+      }
+
+      const pets = await user.getPets();
       return pets;
     } catch (err) {
       throw err;
@@ -43,14 +37,7 @@ export class PetService {
 
   public async GetPets() {
     try {
-      let query =
-        'SELECT id, pet_name, user_email, birth_date, created_datetime, updated_datetime, pet_type, breed ' +
-        'FROM pets;';
-      const { rows } = await db.query(query);
-      const pets = rows.map(row => {
-        const pet = <IPet>row;
-        return pet;
-      });
+      const pets = await Pet.findAll();
       return pets;
     } catch (err) {
       throw err;
@@ -59,35 +46,18 @@ export class PetService {
 
   public async CreatePet(pet: IPet) {
     try {
-      const newPet = JSON.parse(JSON.stringify(pet));
+      const emailLower = pet.user_email.toLowerCase();
+      const user = await User.findOne({ where: { email: emailLower } });
+
+      if (!user) {
+        throw new Error('pet owner does not exist');
+      }
+
+      const petModel = JSON.parse(JSON.stringify(pet));
       const now = nowISO();
-      newPet.created_datetime = now;
-      newPet.updated_datetime = now;
-      const {
-        user_email,
-        pet_name,
-        birth_date,
-        created_datetime,
-        updated_datetime,
-        pet_type,
-        breed,
-      } = newPet;
-      const queryParams = [
-        user_email,
-        pet_name,
-        birth_date,
-        created_datetime,
-        updated_datetime,
-        pet_type,
-        breed,
-      ];
-      let query =
-        'INSERT INTO pets ' +
-        '(user_email, pet_name, birth_date, created_datetime, updated_datetime, pet_type, breed) ' +
-        'VALUES ($1, $2, $3, $4, $5, $6, $7) ' +
-        'RETURNING id;';
-      const { rows } = await db.query(query, queryParams);
-      newPet.id = rows[0].id;
+      petModel.created_datetime = now;
+      petModel.updated_datetime = now;
+      const newPet = await Pet.create(petModel);
       return newPet;
     } catch (err) {
       throw err;
@@ -96,43 +66,29 @@ export class PetService {
 
   public async UpdatePet(pet: IPet) {
     try {
-      let selectQuery =
-        'SELECT id, pet_name, user_email, birth_date, created_datetime, updated_datetime, pet_type, breed ' +
-        'FROM pets ' +
-        'WHERE id = $1;';
-      let selectResponse = await db.query(selectQuery, [pet.id]);
+      const oldPet = await Pet.findOne({ where: { id: pet.id } });
 
-      if (selectResponse.rows.length === 0) {
+      if (!oldPet) {
         throw new Error('pet not found');
       }
 
-      const oldPet = <IPet>selectResponse.rows[0];
-      const newPet = Object.assign(oldPet, pet);
-      newPet.updated_datetime = nowISO();
       const {
-        id,
         user_email,
         pet_name,
         birth_date,
         pet_type,
         breed,
-        updated_datetime,
-      } = newPet;
-      const queryParams = [
-        id,
-        user_email,
-        pet_name,
-        birth_date,
-        pet_type,
-        breed,
-        updated_datetime,
-      ];
+      } = Object.assign(<IPet>oldPet, pet);
 
-      let updateQuery =
-        'UPDATE pets ' +
-        'SET user_email = $2, pet_name = $3, birth_date = $4, pet_type = $5, breed = $6, updated_datetime = $7' +
-        'WHERE id = $1;';
-      await db.query(updateQuery, queryParams);
+      const newPet = await oldPet.update({
+        user_email,
+        pet_name,
+        pet_type,
+        breed,
+        birth_date,
+        updated_datetime: nowISO(),
+      });
+
       return newPet;
     } catch (err) {
       throw err;
@@ -141,8 +97,12 @@ export class PetService {
 
   public async DeletePet(id: string) {
     try {
-      let query = 'DELETE FROM pets WHERE id = $1;';
-      await db.query(query, [id]);
+      const pet = await Pet.findOne({ where: { id } });
+      if (!pet) {
+        throw new Error('pet not found');
+      }
+
+      await pet.destroy();
     } catch (err) {
       throw err;
     }

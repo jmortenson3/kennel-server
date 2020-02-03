@@ -11,7 +11,6 @@ const app = express();
 
 app.use(express.json());
 app.use(cookieParser());
-console.log(`Accepting requests from...${config.clientUrl}`);
 app.use(cors({ credentials: true, origin: [config.clientUrl] }));
 app.use(routes);
 app.use(errorHandler);

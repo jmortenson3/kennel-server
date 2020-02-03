@@ -7,10 +7,10 @@ const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
-  console.log('Handling an error: ' + err.message);
-  console.log(err);
-  return res.status(err.statusCode || 500).json({
-    error: err.message || 'Oops, something went wrong :( ',
+  const { message, statusCode } = err;
+  console.log(`Handling a ${statusCode} error: ${message}`);
+  return res.status(statusCode || 500).json({
+    error: message || 'Oops, something went wrong :( ',
   });
 };
 

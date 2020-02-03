@@ -4,6 +4,7 @@ import { UserService } from '../services/user';
 import { getUserFromToken, nowISO } from '../utils';
 import db from '../db';
 import { IMembership } from '../interfaces/IMembership';
+import { UUID } from '../models/uuid';
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     const { rows } = await db.query(query);
     res.status(200).json({ data: rows });
   } catch (err) {
-    next({ message: err, statusCode: 400 });
+    next({ message: err.message, statusCode: 400 });
   }
 });
 
@@ -35,8 +36,7 @@ router.get('/me', async (req: Request, res: Response, next: NextFunction) => {
     const user = await userService.GetUserDetails(userEmail);
     res.status(200).json({ data: user });
   } catch (err) {
-    console.log(err);
-    next({ message: err, statusCode: 400 });
+    next({ message: err.message, statusCode: 400 });
   }
 });
 
@@ -44,18 +44,35 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     let id = req.params.id;
     if (!id) {
-      return next({
-        error: 'user email is not supplied',
-      });
+      throw new Error('user email is not supplied');
     }
     const userEmail = id.trim().toLowerCase();
     const userService = new UserService();
     const user = await userService.GetUserDetails(userEmail);
     res.status(200).json({ data: user });
   } catch (err) {
-    next({ message: 'could not find user', status: 488 });
+    next({ message: err.message, status: 488 });
   }
 });
+
+router.delete(
+  '/:id',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      let id = req.params.id;
+      if (!id) {
+        throw new Error('user email must be provided');
+      }
+
+      const userEmail = id.trim().toLowerCase();
+      const userService = new UserService();
+      await userService.DeleteUser(userEmail);
+      res.status(200).json({ data: { message: `${userEmail} deleted` } });
+    } catch (err) {
+      next({ message: err.message, statusCode: 400 });
+    }
+  }
+);
 
 router.post(
   '/:id/memberships',
@@ -68,10 +85,17 @@ router.post(
         throw new Error('org_id or user id is not defined');
       }
 
+      const orgId = id.trim();
+      const uuid = new UUID(orgId);
+
+      if (!uuid.isValid()) {
+        throw new Error('invalid org id');
+      }
+
       const userEmail = id.trim().toLowerCase();
       const now = nowISO();
       const membership: IMembership = {
-        userEmail,
+        user_email: userEmail,
         org_id,
         created_datetime: now,
         updated_datetime: now,
@@ -80,7 +104,7 @@ router.post(
       await userService.CreateMembership(membership);
       res.status(200).json({ data: membership });
     } catch (err) {
-      next({ message: err, statusCode: 400 });
+      next({ message: err.message, statusCode: 400 });
     }
   }
 );
@@ -89,28 +113,18 @@ router.get(
   '/:id/memberships',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const id = req.params.id;
-      if (!id) {
+      const userEmail = req.params.id;
+      if (!userEmail) {
         throw new Error('user id not defined');
       }
 
-      const userEmail = id.trim().toLowerCase();
+      const emailLower = userEmail.trim().toLowerCase();
       const userService = new UserService();
-      let rows: any[];
+      const memberships = await userService.GetMembershipsByUser(emailLower);
 
-      if (req.query.org_id) {
-        rows = await userService.GetMembershipsByOrg(
-          userEmail,
-          req.query.org_id
-        );
-      } else {
-        rows = await userService.GetMemberships(userEmail);
-      }
-
-      res.status(200).json({ data: rows });
+      res.status(200).json({ data: memberships });
     } catch (err) {
-      console.log(err.message);
-      next({ message: err, statusCode: 400 });
+      next({ message: err.message, statusCode: 400 });
     }
   }
 );
@@ -119,7 +133,7 @@ router.put(
   '/:id/memberships',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const id = req.params.id;
+      const userEmail = req.params.id;
       let {
         org_id,
         can_accept_appointments,
@@ -127,14 +141,21 @@ router.put(
         can_edit_kennel_layout,
       } = req.body;
 
-      if (!org_id || !id) {
+      if (!org_id || !userEmail) {
         throw new Error('org_id or user id is not defined');
       }
 
-      const userEmail = id.trim().toLowerCase();
+      const orgId = userEmail.trim();
+      const uuid = new UUID(orgId);
+
+      if (!uuid.isValid()) {
+        throw new Error('invalid org id');
+      }
+
+      const emailLower = userEmail.trim().toLowerCase();
       const membership: IMembership = {
-        org_id,
-        userEmail,
+        org_id: orgId,
+        user_email: emailLower,
         can_accept_appointments,
         can_deny_appointments,
         can_edit_kennel_layout,
@@ -144,7 +165,7 @@ router.put(
       const updatedMembership = await userService.UpdateMembership(membership);
       res.status(200).json(updatedMembership);
     } catch (err) {
-      next({ message: err, statusCode: 400 });
+      next({ message: err.message, statusCode: 400 });
     }
   }
 );
@@ -153,23 +174,26 @@ router.delete(
   '/:id/memberships',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const id = req.params.id;
+      const userEmail = req.params.id;
       const { org_id } = req.body;
 
-      if (!org_id || !id) {
+      if (!org_id || !userEmail) {
         throw new Error('org_id or user id is not defined');
       }
 
-      const userEmail = id.trim().toLowerCase();
-      const membership: IMembership = {
-        userEmail,
-        org_id,
-      };
+      const orgId = userEmail.trim();
+      const uuid = new UUID(orgId);
+
+      if (!uuid.isValid()) {
+        throw new Error('invalid org id');
+      }
+
+      const lowerEmail = userEmail.trim().toLowerCase();
       const userService = new UserService();
-      await userService.DeleteMembership(membership);
+      await userService.DeleteMembership(orgId, lowerEmail);
       res.status(200).json({});
     } catch (err) {
-      next({ message: err, statusCode: 400 });
+      next({ message: err.message, statusCode: 400 });
     }
   }
 );

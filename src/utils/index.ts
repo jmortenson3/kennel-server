@@ -106,3 +106,7 @@ export const setLastLoginDate = async function(email: string) {
 export const logem = function(msg: string) {
   console.log(this.nowISO() + '  ' + msg);
 };
+
+export const clone = (obj: Object) => {
+  return JSON.parse(JSON.stringify(obj));
+};
