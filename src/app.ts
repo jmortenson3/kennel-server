@@ -6,7 +6,6 @@ import config from '../config';
 import errorHandler from './handlers/error';
 import routes from './routes';
 
-const port = process.env.PORT || 3001;
 const app = express();
 
 app.use(express.json());
@@ -19,4 +18,4 @@ app.use((req, res, next) => {
   res.status(404).json({ message: "there's nothing here :(" });
 });
 
-app.listen(port, () => console.log(`Running on port ${port}`));
+export default app;
