@@ -1,5 +1,7 @@
 ## Kennel App 🐕‍🦺
 
+This is the backend REST API for a dog daycare CRM.
+
 #### Auth Resources
 
 | Route                   | Desc               | Required fields                         |
