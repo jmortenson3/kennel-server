@@ -18,6 +18,9 @@ export default class AuthService {
       const userService = new UserService();
       const newUserSafe = await userService.CreateUser(user);
       const token = this.CreateToken(newUserSafe);
+
+      delete newUserSafe.hashed_password;
+
       return { newUser: newUserSafe, token };
     } catch (err) {
       throw err;
@@ -51,8 +54,9 @@ export default class AuthService {
       }
 
       const userSafe = <IUserSafe>userRecord.toJSON();
-
       const token = this.CreateToken(userSafe);
+
+      delete userSafe.hashed_password;
 
       return { user: userSafe, token };
     } catch (err) {
@@ -84,6 +88,9 @@ export default class AuthService {
 
       const userSafe = <IUserSafe>userRecord.toJSON();
       const newToken = this.CreateToken(userSafe);
+
+      delete userSafe.hashed_password;
+
       return { user: userSafe, token: newToken };
     } catch (err) {
       throw err;
