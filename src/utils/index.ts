@@ -1,8 +1,6 @@
 import bcrypt from 'bcrypt';
 import jwt, { VerifyErrors } from 'jsonwebtoken';
 
-import db from '../db';
-
 /**
  * Time in milliseconds -
  */
@@ -91,16 +89,6 @@ export const getTokenFromCookie = (cookie: string) => {
   let cookies = cookie.split('=');
   let token = cookies[cookies.indexOf('token') + 1];
   return token;
-};
-
-export const setLastLoginDate = async function(email: string) {
-  try {
-    let query = 'UPDATE users SET last_login_date = $1 where email = $2;';
-    await db.query(query, [this.nowISO(), email]);
-  } catch (err) {
-    console.log('Error updating user lastLoginDate');
-    console.log(err.message);
-  }
 };
 
 export const logem = function(msg: string) {

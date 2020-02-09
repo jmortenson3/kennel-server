@@ -15,10 +15,12 @@ const attributes: ModelAttributes = {
   org_id: {
     type: DataTypes.UUID,
     allowNull: false,
+    primaryKey: true,
   },
   user_email: {
     type: DataTypes.TEXT,
     allowNull: false,
+    primaryKey: true,
   },
   can_accept_appointments: {
     type: DataTypes.BOOLEAN,

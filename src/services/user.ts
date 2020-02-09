@@ -1,11 +1,45 @@
-import { IUserSafe } from '../interfaces/IUser';
+import { IUserSafe, IUser } from '../interfaces/IUser';
 import { IMembership } from '../interfaces/IMembership';
-import { nowISO, clone } from '../utils';
+import { nowISO, clone, hashPassword } from '../utils';
 import User from '../models/user';
 import Membership from '../models/membership';
 
 export class UserService {
   constructor() {}
+
+  public async CreateUser(user: IUser) {
+    try {
+      if (!user.email) {
+        throw new Error('email not provided for signup');
+      }
+
+      const emailLower = user.email.toLowerCase();
+
+      const potentialUser = await User.findOne({
+        where: { email: emailLower },
+      });
+
+      if (potentialUser) {
+        throw new Error('user already exists');
+      }
+
+      const hashedPassword = await hashPassword(user.password);
+      const now = nowISO();
+      const userModel: IUserSafe = {
+        email: emailLower,
+        created_datetime: now,
+        updated_datetime: now,
+      };
+
+      const newUser = await User.create({
+        ...userModel,
+        hashed_password: hashedPassword,
+      });
+      return userModel;
+    } catch (err) {
+      throw err;
+    }
+  }
 
   public async GetUserDetails(userEmail: string) {
     try {
@@ -90,7 +124,7 @@ export class UserService {
     try {
       const membership = await Membership.findOne({
         where: {
-          organization_id: orgId,
+          org_id: orgId,
           user_email: userEmail,
         },
       });

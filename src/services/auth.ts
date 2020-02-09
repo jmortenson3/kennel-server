@@ -1,8 +1,9 @@
 import jwt from 'jsonwebtoken';
 import { IUser, IUserSafe } from '../interfaces/IUser';
-import { nowISO, hashPassword, comparePasswords, decodeToken } from '../utils';
+import { comparePasswords, decodeToken } from '../utils';
 import config from '../../config';
 import User from '../models/user';
+import { UserService } from './user';
 
 export default class AuthService {
   constructor() {}
@@ -11,33 +12,13 @@ export default class AuthService {
     user: IUser
   ): Promise<{ newUser: IUserSafe; token: string }> {
     try {
-      if (!user.email) {
-        throw new Error('email not provided for signup');
+      if (user.password != user.repassword) {
+        throw new Error('signup password mismatch');
       }
-
-      const emailLower = user.email.toLowerCase();
-
-      const potentialUser = await User.findOne({
-        where: { email: emailLower },
-      });
-
-      if (potentialUser) {
-        throw new Error('user already exists');
-      }
-
-      const hashedPassword = await hashPassword(user.password);
-      const now = nowISO();
-      const userModel: IUserSafe = {
-        email: emailLower,
-        hashed_password: hashedPassword,
-        created_datetime: now,
-        updated_datetime: now,
-      };
-
-      const newUser = await User.create(userModel);
-      const userSafe = <IUserSafe>newUser.toJSON();
-      const token = this.CreateToken(userSafe);
-      return { newUser: userSafe, token };
+      const userService = new UserService();
+      const newUserSafe = await userService.CreateUser(user);
+      const token = this.CreateToken(newUserSafe);
+      return { newUser: newUserSafe, token };
     } catch (err) {
       throw err;
     }

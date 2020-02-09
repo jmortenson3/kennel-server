@@ -2,7 +2,6 @@ import express, { Request, Response, NextFunction } from 'express';
 
 import { UserService } from '../services/user';
 import { getUserFromToken, nowISO } from '../utils';
-import db from '../db';
 import { IMembership } from '../interfaces/IMembership';
 import { UUID } from '../models/uuid';
 
@@ -10,10 +9,7 @@ const router = express.Router();
 
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    let query =
-      'SELECT email, created_datetime, updated_datetime ' + 'FROM users;';
-    const { rows } = await db.query(query);
-    res.status(200).json({ data: rows });
+    res.status(200).json({});
   } catch (err) {
     next({ message: err.message, statusCode: 400 });
   }
