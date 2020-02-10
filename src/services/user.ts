@@ -4,7 +4,7 @@ import { nowISO, clone, hashPassword } from '../utils';
 import User from '../models/user';
 import Membership from '../models/membership';
 
-export class UserService {
+export default class UserService {
   constructor() {}
 
   public async CreateUser(user: IUser) {

@@ -1,9 +1,8 @@
 import express, { Request, Response, NextFunction } from 'express';
 
-import { nowISO } from '../utils';
-import { OrganizationService } from '../services/organization';
+import { nowISO, isValidUUID } from '../utils';
+import OrganizationService from '../services/organization';
 import { IOrganization } from '../interfaces/IOrganization';
-import { UUID } from '../models/uuid';
 
 const router = express.Router();
 
@@ -52,9 +51,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
     }
 
     const orgId = id.trim();
-    const uuid = new UUID(orgId);
-
-    if (!uuid.isValid()) {
+    if (!isValidUUID(orgId)) {
       throw new Error('invalid org id');
     }
 
@@ -75,9 +72,7 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
     }
 
     const orgId = id.trim();
-    const uuid = new UUID(orgId);
-
-    if (!uuid.isValid()) {
+    if (!isValidUUID(orgId)) {
       throw new Error('invalid org id');
     }
 
@@ -111,9 +106,7 @@ router.delete(
       }
 
       const orgId = id.trim();
-      const uuid = new UUID(orgId);
-
-      if (!uuid.isValid()) {
+      if (!isValidUUID(orgId)) {
         throw new Error('invalid org id');
       }
 

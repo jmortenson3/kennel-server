@@ -2,7 +2,7 @@ import { nowISO, clone } from '../utils';
 import { IOrganization } from '../interfaces/IOrganization';
 import Organization from '../models/organization';
 
-export class OrganizationService {
+export default class OrganizationService {
   constructor() {}
 
   public async CreateOrganization(organization: IOrganization) {

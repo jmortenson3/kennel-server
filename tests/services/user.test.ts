@@ -1,16 +1,16 @@
-import { UserService } from './user';
-import { IUser, IUserSafe } from '../interfaces/IUser';
-import { IOrganization } from '../interfaces/IOrganization';
-import { IAppointment } from '../interfaces/IAppointment';
-import { ILocation } from '../interfaces/ILocation';
-import { IPet } from '../interfaces/IPet';
-import User from '../models/user';
-import Organization from '../models/organization';
-import Location from '../models/location';
-import Appointment from '../models/appointment';
-import Pet from '../models/pet';
+import UserService from '../../src/services/user';
+import { IUser, IUserSafe } from '../../src/interfaces/IUser';
+import { IOrganization } from '../../src/interfaces/IOrganization';
+import { IAppointment } from '../../src/interfaces/IAppointment';
+import { ILocation } from '../../src/interfaces/ILocation';
+import { IPet } from '../../src/interfaces/IPet';
+import User from '../../src/models/user';
+import Organization from '../../src/models/organization';
+import Location from '../../src/models/location';
+import Appointment from '../../src/models/appointment';
+import Pet from '../../src/models/pet';
 import uuid from 'uuid';
-import { IMembership } from '../interfaces/IMembership';
+import { IMembership } from '../../src/interfaces/IMembership';
 
 /**
  * Setup:

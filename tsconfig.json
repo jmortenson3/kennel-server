@@ -8,6 +8,14 @@
     "noFallthroughCasesInSwitch": true,
     "outDir": "./dist"
   },
-  "include": ["./src/**/*"],
+  "include": [
+    "./src/**/*",
+    "tests/services/auth.test.ts",
+    "tests/services/organization.test.ts",
+    "tests/services/user.test.ts",
+    "tests/services/location.test.ts",
+    "tests/services/appointment.test.ts",
+    "tests/services/pet.test.ts"
+  ],
   "exclude": ["./src/**/*test.ts"]
 }

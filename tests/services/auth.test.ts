@@ -1,6 +1,6 @@
-import User from '../models/user';
-import { IUser } from '../interfaces/IUser';
-import AuthService from '../services/auth';
+import User from '../../src/models/user';
+import { IUser } from '../../src/interfaces/IUser';
+import AuthService from '../../src/services/auth';
 /**
  * Setup
  *  Login

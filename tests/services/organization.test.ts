@@ -1,6 +1,6 @@
 import uuid from 'uuid';
-import { IOrganization } from '../interfaces/IOrganization';
-import { OrganizationService } from '../services/organization';
+import { IOrganization } from '../../src/interfaces/IOrganization';
+import OrganizationService from '../../src/services/organization';
 
 /**
  * Setup none

@@ -3,7 +3,7 @@ import { nowISO, clone } from '../utils';
 import Organization from '../models/organization';
 import Location from '../models/location';
 
-export class LocationService {
+export default class LocationService {
   constructor() {}
 
   public async CreateLocation(location: ILocation) {

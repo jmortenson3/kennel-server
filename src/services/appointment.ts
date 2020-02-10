@@ -5,7 +5,7 @@ import Location from '../models/location';
 import Organization from '../models/organization';
 import User from '../models/user';
 
-export class AppointmentService {
+export default class AppointmentService {
   constructor() {}
 
   public async CreateAppointment(appointment: IAppointment) {

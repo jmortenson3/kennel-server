@@ -1,15 +1,15 @@
 import uuid from 'uuid';
 
-import User from '../models/user';
-import { IUserSafe } from '../interfaces/IUser';
-import { IOrganization } from '../interfaces/IOrganization';
-import { IPet } from '../interfaces/IPet';
-import { ILocation } from '../interfaces/ILocation';
-import { IAppointment } from '../interfaces/IAppointment';
-import { AppointmentService } from '../services/appointment';
-import Organization from '../models/organization';
-import Pet from '../models/pet';
-import Location from '../models/location';
+import User from '../../src/models/user';
+import { IUserSafe } from '../../src/interfaces/IUser';
+import { IOrganization } from '../../src/interfaces/IOrganization';
+import { IPet } from '../../src/interfaces/IPet';
+import { ILocation } from '../../src/interfaces/ILocation';
+import { IAppointment } from '../../src/interfaces/IAppointment';
+import AppointmentService from '../../src/services/appointment';
+import Organization from '../../src/models/organization';
+import Pet from '../../src/models/pet';
+import Location from '../../src/models/location';
 
 /**
  * Setup:

@@ -1,8 +1,8 @@
 import uuid from 'uuid';
-import { IUserSafe } from '../interfaces/IUser';
-import { IPet } from '../interfaces/IPet';
-import User from '../models/user';
-import { PetService } from '../services/pet';
+import { IUserSafe } from '../../src/interfaces/IUser';
+import { IPet } from '../../src/interfaces/IPet';
+import User from '../../src/models/user';
+import PetService from '../../src/services/pet';
 /**
  * Setup
  *  1. create user

@@ -1,9 +1,9 @@
 import express, { Request, Response, NextFunction } from 'express';
 
-import { UserService } from '../services/user';
+import UserService from '../services/user';
 import { getUserFromToken, nowISO } from '../utils';
 import { IMembership } from '../interfaces/IMembership';
-import { UUID } from '../models/uuid';
+import { isValidUUID } from '../utils';
 
 const router = express.Router();
 
@@ -59,7 +59,6 @@ router.delete(
       if (!id) {
         throw new Error('user email must be provided');
       }
-
       const userEmail = id.trim().toLowerCase();
       const userService = new UserService();
       await userService.DeleteUser(userEmail);
@@ -82,9 +81,7 @@ router.post(
       }
 
       const orgId = id.trim();
-      const uuid = new UUID(orgId);
-
-      if (!uuid.isValid()) {
+      if (!isValidUUID(orgId)) {
         throw new Error('invalid org id');
       }
 
@@ -141,10 +138,8 @@ router.put(
         throw new Error('org_id or user id is not defined');
       }
 
-      const orgId = userEmail.trim();
-      const uuid = new UUID(orgId);
-
-      if (!uuid.isValid()) {
+      const orgId = org_id.trim();
+      if (!isValidUUID(orgId)) {
         throw new Error('invalid org id');
       }
 
@@ -177,10 +172,8 @@ router.delete(
         throw new Error('org_id or user id is not defined');
       }
 
-      const orgId = userEmail.trim();
-      const uuid = new UUID(orgId);
-
-      if (!uuid.isValid()) {
+      const orgId = org_id.trim();
+      if (!isValidUUID(orgId)) {
         throw new Error('invalid org id');
       }
 

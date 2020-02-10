@@ -98,3 +98,10 @@ export const logem = function(msg: string) {
 export const clone = (obj: Object) => {
   return JSON.parse(JSON.stringify(obj));
 };
+
+export const isValidUUID = (uuid: string): boolean => {
+  const validUUIDRegex = new RegExp(
+    '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+  );
+  return validUUIDRegex.test(uuid);
+};

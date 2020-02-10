@@ -3,7 +3,7 @@ import { nowISO } from '../utils';
 import User from '../models/user';
 import Pet from '../models/pet';
 
-export class PetService {
+export default class PetService {
   constructor() {}
 
   public async GetPetById(id: string) {

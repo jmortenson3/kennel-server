@@ -1,8 +1,8 @@
 import express, { Request, Response, NextFunction } from 'express';
 
 import { ILocation } from '../interfaces/ILocation';
-import { LocationService } from '../services/location';
-import { UUID } from '../models/uuid';
+import LocationService from '../services/location';
+import { isValidUUID } from '../utils';
 import Location from '../models/location';
 
 const router = express.Router();
@@ -16,9 +16,7 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     }
 
     const orgId = org_id.trim();
-    const uuid = new UUID(orgId);
-
-    if (!uuid.isValid()) {
+    if (!isValidUUID(orgId)) {
       throw new Error('invalid org id');
     }
 
@@ -43,9 +41,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
     }
 
     const locationId = id.trim();
-    const uuid = new UUID(locationId);
-
-    if (!uuid.isValid()) {
+    if (!isValidUUID(locationId)) {
       throw new Error('invalid org id');
     }
     const locationService = new LocationService();
@@ -62,9 +58,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     const locationService = new LocationService();
     if (req.query.org_id) {
       const orgId = req.query.org_id.trim();
-      const orgUuid = new UUID(orgId);
-
-      if (!orgUuid.isValid()) {
+      if (!isValidUUID(orgId)) {
         throw new Error('invalid org id');
       }
 
@@ -89,16 +83,12 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
     }
 
     const locationId = id.trim();
-    const locUuid = new UUID(locationId);
-
-    if (!locUuid.isValid()) {
+    if (!isValidUUID(locationId)) {
       throw new Error('invalid loc id');
     }
 
     const orgId = org_id.trim();
-    const orgUuid = new UUID(orgId);
-
-    if (!orgUuid.isValid()) {
+    if (!isValidUUID(orgId)) {
       throw new Error('invalid org id');
     }
 
@@ -128,16 +118,12 @@ router.delete(
       }
 
       const locationId = id.trim();
-      const locUuid = new UUID(locationId);
-
-      if (!locUuid.isValid()) {
+      if (!isValidUUID(locationId)) {
         throw new Error('invalid loc id');
       }
 
       const orgId = org_id.trim();
-      const orgUuid = new UUID(orgId);
-
-      if (!orgUuid.isValid()) {
+      if (!isValidUUID(orgId)) {
         throw new Error('invalid org id');
       }
 

@@ -3,7 +3,7 @@ import { IUser, IUserSafe } from '../interfaces/IUser';
 import { comparePasswords, decodeToken } from '../utils';
 import config from '../../config';
 import User from '../models/user';
-import { UserService } from './user';
+import UserService from './user';
 
 export default class AuthService {
   constructor() {}

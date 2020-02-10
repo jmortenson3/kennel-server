@@ -1,8 +1,8 @@
 import express, { Request, Response, NextFunction } from 'express';
 
-import { AppointmentService } from '../services/appointment';
+import AppointmentService from '../services/appointment';
 import { IAppointment } from '../interfaces/IAppointment';
-import { UUID } from '../models/uuid';
+import { isValidUUID } from '../utils';
 
 const router = express.Router();
 
@@ -25,23 +25,17 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     }
 
     const locationId = loc_id.trim();
-    const locUuid = new UUID(locationId);
-
-    if (!locUuid.isValid()) {
+    if (!isValidUUID(locationId)) {
       throw new Error('invalid location id');
     }
 
     const orgId = org_id.trim();
-    const orgUuid = new UUID(orgId);
-
-    if (!orgUuid.isValid()) {
+    if (!isValidUUID(orgId)) {
       throw new Error('invalid org id');
     }
 
     const petId = pet_id.trim();
-    const petUuid = new UUID(petId);
-
-    if (!petUuid.isValid()) {
+    if (!isValidUUID(petId)) {
       throw new Error('invalid pet id');
     }
 
@@ -75,9 +69,8 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
     }
 
     const appointmentId = id.trim();
-    const uuid = new UUID(appointmentId);
 
-    if (!uuid.isValid()) {
+    if (!isValidUUID(appointmentId)) {
       throw new Error('invalid org id');
     }
 
@@ -96,15 +89,13 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 
     if (req.query.loc_id) {
       const locId = req.query.loc_id.trim();
-      const uuid = new UUID(locId);
-      if (!uuid.isValid()) {
+      if (!isValidUUID(locId)) {
         throw new Error('invalid loc id');
       }
       appointments = await appointmentService.GetAppointmentsByLocation(locId);
     } else if (req.query.org_id) {
       const orgId = req.query.org_id.trim();
-      const uuid = new UUID(orgId);
-      if (!uuid.isValid()) {
+      if (!isValidUUID(orgId)) {
         throw new Error('invalid org id');
       }
       appointments = await appointmentService.GetAppointmentsByOrg(orgId);
@@ -132,9 +123,7 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
     }
 
     const appointmentId = id.trim();
-    const uuid = new UUID(appointmentId);
-
-    if (!uuid.isValid()) {
+    if (!isValidUUID(appointmentId)) {
       throw new Error('invalid appointment id');
     }
 
@@ -187,9 +176,7 @@ router.delete(
       }
 
       const appointmentId = id.trim();
-      const uuid = new UUID(appointmentId);
-
-      if (!uuid.isValid()) {
+      if (!isValidUUID(appointmentId)) {
         throw new Error('invalid org id');
       }
 

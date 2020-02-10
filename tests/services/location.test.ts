@@ -1,9 +1,9 @@
 import uuid from 'uuid';
 
-import { ILocation } from '../interfaces/ILocation';
-import { IOrganization } from '../interfaces/IOrganization';
-import Organization from '../models/organization';
-import { LocationService } from '../services/location';
+import { ILocation } from '../../src/interfaces/ILocation';
+import { IOrganization } from '../../src/interfaces/IOrganization';
+import Organization from '../../src/models/organization';
+import LocationService from '../../src/services/location';
 
 /**
  * Setup

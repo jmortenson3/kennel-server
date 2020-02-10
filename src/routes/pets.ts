@@ -1,9 +1,9 @@
 import express, { Request, Response, NextFunction } from 'express';
 
-import { PetService } from '../services/pet';
+import PetService from '../services/pet';
 import { IPet } from '../interfaces/IPet';
 import Pet from '../models/pet';
-import { UUID } from '../models/uuid';
+import { isValidUUID } from '../utils';
 
 const router = express.Router();
 
@@ -39,9 +39,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
     }
 
     const petId = id.trim();
-    const uuid = new UUID(petId);
-
-    if (!uuid.isValid()) {
+    if (!isValidUUID(petId)) {
       throw new Error('invalid pet id');
     }
 
@@ -78,9 +76,7 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
     }
 
     const petId = id.trim();
-    const uuid = new UUID(petId);
-
-    if (!uuid.isValid()) {
+    if (!isValidUUID(petId)) {
       throw new Error('invalid pet id');
     }
 
@@ -113,9 +109,7 @@ router.delete(
       }
 
       const petId = id.trim();
-      const uuid = new UUID(petId);
-
-      if (!uuid.isValid()) {
+      if (!isValidUUID(petId)) {
         throw new Error('invalid pet id');
       }
 
